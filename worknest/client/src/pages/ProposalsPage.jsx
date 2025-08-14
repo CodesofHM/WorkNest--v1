@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { getClientsForUser } from '../services/clientService';
+import { getTemplatesForUser } from '../services/pricingTemplateService'; // Import template service
 import { addProposal, getProposalsForUser, updateProposal, deleteProposal } from '../services/proposalService';
 import AddProposalForm from '../components/proposals/AddProposalForm';
 import ProposalList from '../components/proposals/ProposalList';
@@ -10,6 +11,7 @@ const ProposalsPage = () => {
   const { currentUser } = useAuth();
   const [proposals, setProposals] = useState([]);
   const [clients, setClients] = useState([]);
+  const [templates, setTemplates] = useState([]); // State for pricing templates
   const [loading, setLoading] = useState(true);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingProposal, setEditingProposal] = useState(null);
@@ -19,12 +21,14 @@ const ProposalsPage = () => {
     if (currentUser) {
       setLoading(true);
       try {
-        const [userProposals, userClients] = await Promise.all([
+        const [userProposals, userClients, userTemplates] = await Promise.all([
           getProposalsForUser(currentUser.uid),
-          getClientsForUser(currentUser.uid)
+          getClientsForUser(currentUser.uid),
+          getTemplatesForUser(currentUser.uid)
         ]);
         setProposals(userProposals);
         setClients(userClients);
+        setTemplates(userTemplates);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -89,7 +93,6 @@ const ProposalsPage = () => {
         </button>
       </header>
       
-      {/* UPDATED: Filter options are now more user-centric */}
       <div className="mb-6 p-4 bg-white rounded-lg shadow-sm flex items-center">
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 border rounded-lg bg-white">
           <option value="All">Filter by Status: All</option>
@@ -102,9 +105,20 @@ const ProposalsPage = () => {
 
       <main className="bg-white p-6 rounded-lg shadow-md">
         {isFormVisible ? (
-          <AddProposalForm clients={clients} onSave={handleSaveProposal} onCancel={handleCancel} initialData={editingProposal} />
+          <AddProposalForm 
+            clients={clients} 
+            templates={templates}
+            onSave={handleSaveProposal} 
+            onCancel={handleCancel} 
+            initialData={editingProposal} 
+          />
         ) : (
-          <ProposalList proposals={filteredProposals} loading={loading} onEdit={handleEditProposal} onDelete={handleDeleteProposal} />
+          <ProposalList 
+            proposals={filteredProposals} 
+            loading={loading} 
+            onEdit={handleEditProposal} 
+            onDelete={handleDeleteProposal}
+          />
         )}
       </main>
     </div>

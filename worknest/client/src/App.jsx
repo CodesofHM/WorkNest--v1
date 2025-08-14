@@ -18,6 +18,9 @@ import ClientsPage from './pages/ClientsPage';
 import ClientProfilePage from './pages/ClientProfilePage';
 import ProposalsPage from './pages/ProposalsPage';
 import ContractsPage from './pages/ContractsPage';
+import InvoicesPage from './pages/InvoicesPage';
+import PricingTemplatesPage from './pages/PricingTemplatesPage';
+import ProfilePage from './pages/ProfilePage'; // Import the new profile page
 
 function App() {
   const { currentUser } = useAuth();
@@ -27,76 +30,23 @@ function App() {
       <Routes>
         
         {/* --- Public Authentication Routes --- */}
-        {/* These routes are for users who are NOT logged in. */}
-        {/* If a logged-in user tries to access them, they are redirected to the dashboard. */}
-        <Route 
-          path="/login" 
-          element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage />} 
-        />
-        <Route 
-          path="/signup" 
-          element={currentUser ? <Navigate to="/dashboard" /> : <SignupPage />} 
-        />
+        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage />} />
+        <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" /> : <SignupPage />} />
 
         {/* --- Protected Application Routes --- */}
-        {/* These routes are wrapped in a layout and can only be accessed by logged-in users. */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <Dashboard />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/clients"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <ClientsPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/clients/:clientId" // Dynamic route for individual client profiles
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <ClientProfilePage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/proposals"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <ProposalsPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/contracts"
-          element={
-            <ProtectedRoute>
-              <MainLayout>
-                <ContractsPage />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/dashboard" element={<ProtectedRoute><MainLayout><Dashboard /></MainLayout></ProtectedRoute>} />
+        <Route path="/clients" element={<ProtectedRoute><MainLayout><ClientsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/clients/:clientId" element={<ProtectedRoute><MainLayout><ClientProfilePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/proposals" element={<ProtectedRoute><MainLayout><ProposalsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/contracts" element={<ProtectedRoute><MainLayout><ContractsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/invoices" element={<ProtectedRoute><MainLayout><InvoicesPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/templates" element={<ProtectedRoute><MainLayout><PricingTemplatesPage /></MainLayout></ProtectedRoute>} />
+        
+        {/* ADD THIS NEW ROUTE FOR THE PROFILE PAGE */}
+        <Route path="/profile" element={<ProtectedRoute><MainLayout><ProfilePage /></MainLayout></ProtectedRoute>} />
         
         {/* --- Default Redirect Route --- */}
-        {/* This catches any other URL and redirects the user appropriately. */}
-        <Route 
-          path="*" 
-          element={<Navigate to={currentUser ? "/dashboard" : "/login"} />} 
-        />
+        <Route path="*" element={<Navigate to={currentUser ? "/dashboard" : "/login"} />} />
 
       </Routes>
     </Router>

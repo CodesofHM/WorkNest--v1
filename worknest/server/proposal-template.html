@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; color: #333; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+        .header h1 { margin: 0; color: #0056b3; }
+        .company-info { text-align: right; }
+        .proposal-details { margin-top: 40px; }
+        .client-info { margin-bottom: 40px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f7f7f7; }
+        .totals { float: right; width: 250px; margin-top: 20px; }
+        .totals table { width: 100%; }
+        .totals td { border: none; }
+        .notes { margin-top: 100px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Proposal</h1>
+            <p><strong>Project:</strong> {{title}}</p>
+        </div>
+        <div class="company-info">
+            <strong>WorkNest Freelancer</strong><br>
+            your.email@worknest.com<br>
+            +1 (123) 456-7890
+        </div>
+    </div>
+
+    <div class="proposal-details">
+        <div class="client-info">
+            <p><strong>Prepared for:</strong></p>
+            <p>{{clientName}}</p>
+            <p>{{clientCompany}}</p>
+        </div>
+        <p><strong>Date:</strong> {{currentDate}}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Service Description</th>
+                <th>Qty</th>
+                <th>Rate</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{lineItems}}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td>Subtotal:</td>
+                <td style="text-align: right;">${{subtotal}}</td>
+            </tr>
+            <tr>
+                <td>Tax ({{taxRate}}%):</td>
+                <td style="text-align: right;">${{taxAmount}}</td>
+            </tr>
+            <tr>
+                <td>Discount:</td>
+                <td style="text-align: right;">-${{discount}}</td>
+            </tr>
+            <tr style="font-weight: bold; font-size: 1.2em; border-top: 2px solid #333;">
+                <td>Grand Total:</td>
+                <td style="text-align: right;">${{total}}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="notes">
+        <h3>Terms & Conditions</h3>
+        <p>{{notes}}</p>
+    </div>
+</body>
+</html>

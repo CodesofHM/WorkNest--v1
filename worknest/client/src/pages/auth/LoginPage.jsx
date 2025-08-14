@@ -1,79 +1,85 @@
 // File: worknest/client/src/pages/auth/LoginPage.jsx
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { login } from '../../services/authService';
+import { Button } from '../../components/ui/Button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    console.log('Attempting to log in with:', { email, password });
+    setLoading(true);
+
     if (!email || !password) {
       setError('Please enter both email and password.');
+      setLoading(false);
       return;
     }
-    // Firebase login logic will go here
+
+    try {
+      await login(email, password);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    // Main container
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      {/* Form container card */}
-      <div className="p-8 bg-white rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          Welcome Back to WorkNest
-        </h2>
+    <div className="flex items-center justify-center min-h-screen bg-secondary font-sans">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Welcome Back</CardTitle>
+          <CardDescription>Enter your email below to log in to your account.</CardDescription>
+        </CardHeader>
         <form onSubmit={handleLogin}>
-          {/* Email input field */}
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2" htmlFor="email">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="you@example.com"
-            />
-          </div>
-          {/* Password input field */}
-          <div className="mb-6">
-            <label className="block text-gray-700 mb-2" htmlFor="password">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="••••••••"
-            />
-          </div>
-          {/* Error message display */}
-          {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
-          {/* Submit button */}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300"
-          >
-            Log In
-          </button>
+          <CardContent className="grid gap-4">
+            <div className="grid gap-2">
+              <label htmlFor="email" className="text-sm font-medium">Email</label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="password"  className="text-sm font-medium">Password</label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </CardContent>
+          <CardFooter className="flex flex-col">
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Logging In...' : 'Log In'}
+            </Button>
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link to="/signup" className="underline">
+                Sign Up
+              </Link>
+            </p>
+          </CardFooter>
         </form>
-        {/* Link to signup page */}
-        <p className="text-center text-gray-600 mt-4">
-          Don't have an account?{' '}
-          <Link to="/signup" className="text-blue-600 hover:underline">
-            Sign Up
-          </Link>
-        </p>
-      </div>
+      </Card>
     </div>
   );
 };

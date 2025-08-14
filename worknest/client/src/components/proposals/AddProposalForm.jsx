@@ -1,7 +1,7 @@
 // File: worknest/client/src/components/proposals/AddProposalForm.jsx
 import React, { useState, useEffect } from 'react';
 
-const AddProposalForm = ({ clients, onSave, onCancel, initialData }) => {
+const AddProposalForm = ({ clients, templates, onSave, onCancel, initialData }) => {
   const [title, setTitle] = useState('');
   const [clientId, setClientId] = useState('');
   const [lineItems, setLineItems] = useState([{ service: '', qty: 1, rate: 0 }]);
@@ -22,6 +22,18 @@ const AddProposalForm = ({ clients, onSave, onCancel, initialData }) => {
       setNotes(''); setTaxRate(0); setDiscount(0);
     }
   }, [initialData]);
+
+  const handleTemplateChange = (e) => {
+    const templateId = e.target.value;
+    if (!templateId) {
+        setLineItems([{ service: '', qty: 1, rate: 0 }]); // Reset if "None" is selected
+        return;
+    };
+    const selectedTemplate = templates.find(t => t.id === templateId);
+    if (selectedTemplate) {
+      setLineItems(selectedTemplate.lineItems);
+    }
+  };
 
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...lineItems];
@@ -66,6 +78,16 @@ const AddProposalForm = ({ clients, onSave, onCancel, initialData }) => {
       </div>
 
       <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Apply a Pricing Template</label>
+        <select onChange={handleTemplateChange} className="w-full px-3 py-2 border rounded-lg bg-gray-50">
+          <option value="">None</option>
+          {templates.map(template => (
+            <option key={template.id} value={template.id}>{template.templateName}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mb-6">
         <h4 className="font-semibold mb-2">Services</h4>
         {lineItems.map((item, index) => (
           <div key={index} className="flex items-center space-x-2 mb-2">
@@ -101,7 +123,6 @@ const AddProposalForm = ({ clients, onSave, onCancel, initialData }) => {
       <div className="flex justify-end space-x-4">
         <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
         <button type="button" onClick={() => handleSubmit('Draft')} className="px-4 py-2 bg-gray-500 text-white rounded-lg">Save as Draft</button>
-        {/* UPDATED: Button text and status */}
         <button type="button" onClick={() => handleSubmit('Ready to Send')} className="px-4 py-2 bg-green-500 text-white rounded-lg">Save as Ready</button>
       </div>
     </form>

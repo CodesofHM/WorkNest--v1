@@ -1,18 +1,19 @@
 // File: worknest/client/src/components/dashboard/StatCard.jsx
 
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 
 const StatCard = ({ title, value, icon }) => {
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md flex items-center">
-      <div className="bg-blue-100 text-blue-600 rounded-full p-3 mr-4">
-        {icon}
-      </div>
-      <div>
-        <p className="text-sm text-gray-500">{title}</p>
-        <p className="text-2xl font-bold text-gray-800">{value}</p>
-      </div>
-    </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <div className="text-muted-foreground">{icon}</div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+      </CardContent>
+    </Card>
   );
 };
 

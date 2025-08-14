@@ -2,17 +2,21 @@
 
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { logActivity } from './activityService'; // Import the logger
 
 const CLIENTS_COLLECTION = 'clients';
 
 // Function to add a new client to Firestore
-export const addClient = (userId, clientData) => {
-  return addDoc(collection(db, CLIENTS_COLLECTION), {
+export const addClient = async (userId, clientData) => {
+  const docRef = await addDoc(collection(db, CLIENTS_COLLECTION), {
     userId,
     ...clientData,
     tags: [], // Initialize with an empty tags array
     createdAt: new Date(),
   });
+  // Log this action
+  await logActivity(userId, 'Client Added', `You added a new client: ${clientData.name}`);
+  return docRef;
 };
 
 // Function to get all clients for a specific user
