@@ -5,6 +5,9 @@ import { getClientsForUser } from '../services/clientService';
 import { addContract, getContractsForUser } from '../services/contractService';
 import AddContractForm from '../components/contracts/AddContractForm';
 import ContractList from '../components/contracts/ContractList';
+import { Button } from '../components/ui/Button';
+import { PlusCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 
 const ContractsPage = () => {
   const { currentUser } = useAuth();
@@ -45,23 +48,23 @@ const ContractsPage = () => {
   };
 
   return (
-    <div className="p-8">
-      <header className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Contracts</h1>
-        <button
-          onClick={() => setIsFormVisible(true)}
-          className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition"
-        >
-          + New Contract
-        </button>
-      </header>
-      <main className="bg-white p-6 rounded-lg shadow-md">
-        {isFormVisible ? (
-          <AddContractForm clients={clients} onSave={handleSaveContract} onCancel={() => setIsFormVisible(false)} />
-        ) : (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Contracts</h1>
+          <p className="text-muted-foreground">Create and manage your contracts.</p>
+        </div>
+        <Button onClick={() => setIsFormVisible(true)}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          New Contract
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent>
           <ContractList contracts={contracts} loading={loading} />
-        )}
-      </main>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -1,53 +1,77 @@
-// File: worknest/client/src/components/Sidebar.jsx
-
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, Users, FileText, FileSignature, Receipt, Tags, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, FileSignature, Receipt, LogOut, Settings, Bot, UserCircle } from 'lucide-react';
 
 const Sidebar = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const navLinkClasses = ({ isActive }) =>
-    `flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Failed to log out:', error);
+    }
+  };
+
+  const navLinkClass = ({ isActive }) =>
+    `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
       isActive
         ? 'bg-primary text-primary-foreground'
-        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
     }`;
 
-  const navItems = [
-    { to: "/dashboard", icon: <LayoutDashboard className="h-4 w-4 mr-3" />, label: "Dashboard" },
-    { to: "/clients", icon: <Users className="h-4 w-4 mr-3" />, label: "Clients" },
-    { to: "/proposals", icon: <FileText className="h-4 w-4 mr-3" />, label: "Proposals" },
-    { to: "/contracts", icon: <FileSignature className="h-4 w-4 mr-3" />, label: "Contracts" },
-    { to: "/invoices", icon: <Receipt className="h-4 w-4 mr-3" />, label: "Invoices" },
-    { to: "/templates", icon: <Tags className="h-4 w-4 mr-3" />, label: "Pricing Templates" },
-  ];
-
-  return (
-    <aside className="w-64 bg-background border-r flex flex-col">
-      {/* Logo Section */}
-      <div className="p-4 border-b h-16 flex items-center">
-        <h1 className="text-2xl font-bold text-foreground">WorkNest</h1>
+    return (
+    <aside className="w-64 flex-shrink-0 bg-white shadow-lg flex flex-col">
+      <div className="h-16 flex items-center justify-center border-b">
+        <Bot size={28} className="text-primary" />
+        <h1 className="text-xl font-bold ml-2 text-gray-800">WorkNest</h1>
       </div>
-
-      {/* Main Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => (
-          <NavLink key={item.to} to={item.to} className={navLinkClasses}>
-            {item.icon}
-            {item.label}
+      <div className="flex-1 flex flex-col justify-between">
+        <nav className="p-4 space-y-2">
+          <NavLink to="/dashboard" className={navLinkClass}>
+            <LayoutDashboard className="mr-3 h-5 w-5" />
+            Dashboard
           </NavLink>
-        ))}
-      </nav>
-
-      {/* User Profile Section at the Bottom */}
-      <div className="p-4 border-t mt-auto">
-        <div className="flex items-center">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground truncate">{currentUser?.email}</p>
-            <p className="text-xs text-muted-foreground">Freelancer Plan</p>
-          </div>
+          <NavLink to="/clients" className={navLinkClass}>
+            <Users className="mr-3 h-5 w-5" />
+            Clients
+          </NavLink>
+          <NavLink to="/proposals" className={navLinkClass}>
+            <FileText className="mr-3 h-5 w-5" />
+            Proposals
+          </NavLink>
+          <NavLink to="/contracts" className={navLinkClass}>
+            <FileSignature className="mr-3 h-5 w-5" />
+            Contracts
+          </NavLink>
+          <NavLink to="/invoices" className={navLinkClass}>
+            <Receipt className="mr-3 h-5 w-5" />
+            Invoices
+          </NavLink>
+          <NavLink to="/templates" className={navLinkClass}>
+            <FileText className="mr-3 h-5 w-5" />
+            Templates
+          </NavLink>
+        </nav>
+        <div className="p-4 border-t">
+          <NavLink to="/account" className="flex items-center mb-4 w-full text-left hover:bg-gray-100 p-2 rounded-lg">
+            {currentUser?.photoURL ? (
+              <img src={currentUser.photoURL} alt="Profile" className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+              <UserCircle className="h-10 w-10 text-muted-foreground" />
+            )}
+            <div className="ml-3">
+              <p className="text-sm font-semibold text-gray-800">{currentUser?.displayName || 'User'}</p>
+              <p className="text-xs text-gray-500">View Profile</p>
+            </div>
+          </NavLink>
+          <NavLink to="/settings" className={navLinkClass}>
+            <Settings className="mr-3 h-5 w-5" />
+            Settings
+          </NavLink>
         </div>
       </div>
     </aside>

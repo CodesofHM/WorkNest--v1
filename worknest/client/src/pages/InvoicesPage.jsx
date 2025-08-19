@@ -5,6 +5,9 @@ import { getClientsForUser } from '../services/clientService';
 import { addInvoice, getInvoicesForUser } from '../services/invoiceService';
 import AddInvoiceForm from '../components/invoices/AddInvoiceForm';
 import InvoiceList from '../components/invoices/InvoiceList';
+import { Button } from '../components/ui/Button';
+import { PlusCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 
 const InvoicesPage = () => {
   const { currentUser } = useAuth();
@@ -44,24 +47,34 @@ const InvoicesPage = () => {
     }
   };
 
+  if (isFormVisible) {
+    return (
+      <AddInvoiceForm
+        clients={clients}
+        onSave={handleSaveInvoice}
+        onCancel={() => setIsFormVisible(false)}
+      />
+    );
+  }
+
   return (
-    <div className="p-8">
-      <header className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Invoices</h1>
-        <button
-          onClick={() => setIsFormVisible(true)}
-          className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
-        >
-          + New Invoice
-        </button>
-      </header>
-      <main className="bg-white p-6 rounded-lg shadow-md">
-        {isFormVisible ? (
-          <AddInvoiceForm clients={clients} onSave={handleSaveInvoice} onCancel={() => setIsFormVisible(false)} />
-        ) : (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Invoices</h1>
+          <p className="text-muted-foreground">Create and manage your invoices.</p>
+        </div>
+        <Button onClick={() => setIsFormVisible(true)}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          New Invoice
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent>
           <InvoiceList invoices={invoices} loading={loading} />
-        )}
-      </main>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -1,15 +1,17 @@
-const multer = require("multer");
-const path = require("path");
+// File: worknest/server/middlewares/upload.js
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "server/uploads/");
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + ext);
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../config/cloudinary');
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'worknest_profile_pictures', // A dedicated folder for profile pics
+    allowed_formats: ['jpg', 'png', 'jpeg'],
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
+
 module.exports = upload;

@@ -1,26 +1,19 @@
 {
-  "name": "server",
+  "name": "worknest-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend for WorkNest CRM",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.11",
-    "cloudinary": "^1.21.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.21.2",
-    "firebase-admin": "^13.4.0",
-    "multer": "^2.0.2",
-    "multer-storage-cloudinary": "^4.0.0",
-    "puppeteer": "^24.16.1",
-    "react-router-dom": "^7.8.0",
-    "tailwindcss": "^4.1.11"
+    "express": "^4.19.2",
+    "firebase-admin": "^12.1.0",
+    "puppeteer": "^22.10.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.1.0"
   }
 }

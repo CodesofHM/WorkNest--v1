@@ -1,6 +1,6 @@
-// File: worknest/client/src/components/clients/ClientList.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Spinner from '../ui/Spinner';
 
 const SortIcon = ({ direction }) => {
   if (!direction) return null;
@@ -8,7 +8,7 @@ const SortIcon = ({ direction }) => {
 };
 
 const ClientList = ({ clients, loading, onEdit, onDelete, onSort, sortConfig }) => {
-  if (loading) return <p>Loading clients...</p>;
+  if (loading) return <div className="flex justify-center items-center h-40"><Spinner /></div>;
   if (clients.length === 0) return <p>No clients found. Try adjusting your search or filter.</p>;
 
   const SortableHeader = ({ label, sortKey }) => (
@@ -25,7 +25,7 @@ const ClientList = ({ clients, loading, onEdit, onDelete, onSort, sortConfig }) 
       <thead>
         <tr className="border-b bg-gray-50">
           <SortableHeader label="Name" sortKey="name" />
-          <th className="p-4">Tags</th> {/* NEW: Tags Header */}
+          <th className="p-4">Tags</th>
           <th className="p-4">Status</th>
           <th className="p-4">Actions</th>
         </tr>
@@ -39,7 +39,6 @@ const ClientList = ({ clients, loading, onEdit, onDelete, onSort, sortConfig }) 
               </Link>
               <p className="text-sm text-gray-500">{client.company}</p>
             </td>
-            {/* NEW: Tags Data Cell */}
             <td className="p-4">
               <div className="flex flex-wrap gap-1">
                 {(client.tags || []).map(tag => (

@@ -1,7 +1,6 @@
-// File: worknest/client/src/App.jsx
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 
 // Import Hooks & Context
 import { useAuth } from './hooks/useAuth';
@@ -20,13 +19,18 @@ import ProposalsPage from './pages/ProposalsPage';
 import ContractsPage from './pages/ContractsPage';
 import InvoicesPage from './pages/InvoicesPage';
 import PricingTemplatesPage from './pages/PricingTemplatesPage';
-import ProfilePage from './pages/ProfilePage'; // Import the new profile page
+
+import PdfViewerPage from './pages/PdfViewerPage';
+import MyAccountPage from './pages/MyAccountPage';
+
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   const { currentUser } = useAuth();
 
   return (
     <Router>
+      <Toaster position="bottom-right" />
       <Routes>
         
         {/* --- Public Authentication Routes --- */}
@@ -42,8 +46,11 @@ function App() {
         <Route path="/invoices" element={<ProtectedRoute><MainLayout><InvoicesPage /></MainLayout></ProtectedRoute>} />
         <Route path="/templates" element={<ProtectedRoute><MainLayout><PricingTemplatesPage /></MainLayout></ProtectedRoute>} />
         
-        {/* ADD THIS NEW ROUTE FOR THE PROFILE PAGE */}
-        <Route path="/profile" element={<ProtectedRoute><MainLayout><ProfilePage /></MainLayout></ProtectedRoute>} />
+        <Route path="/account" element={<ProtectedRoute><MainLayout><MyAccountPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><MainLayout><SettingsPage /></MainLayout></ProtectedRoute>} />
+        
+        
+        <Route path="/proposal/preview" element={<ProtectedRoute><PdfViewerPage /></ProtectedRoute>} />
         
         {/* --- Default Redirect Route --- */}
         <Route path="*" element={<Navigate to={currentUser ? "/dashboard" : "/login"} />} />

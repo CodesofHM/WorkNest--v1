@@ -1,97 +1,82 @@
-// File: worknest/server/index.js
-
+require('./config/firebase'); // Initialize Firebase first
 const express = require('express');
 const cors = require('cors');
-const puppeteer = require('puppeteer');
+const { generateProposalPDF } = require('./services/pdfService');
 const fs = require('fs');
-const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
-const upload = require('./middlewares/upload'); // Make sure your multer upload middleware is imported
-
-// --- FIREBASE ADMIN SETUP ---
-const serviceAccount = require('./serviceAccountKey.json');
-initializeApp({
-  credential: cert(serviceAccount)
-});
-const db = getFirestore();
-// --- END FIREBASE ADMIN SETUP ---
+const path = require('path');
 
 const app = express();
-const port = process.env.PORT || 5000;
-
 app.use(cors());
 app.use(express.json());
+// Serve uploaded files (PDFs)
+// Note: uploads are served via the secure /secure-pdf/:token endpoint to prevent public access
 
-// --- ADD THIS BACK: The File Upload Route ---
-app.post('/upload', upload.single('file'), (req, res) => {
+app.post('/generate-pdf/:proposalId', async (req, res) => {
+  const { proposalId } = req.params;
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file was uploaded.' });
+    const result = await generateProposalPDF(proposalId);
+    // result may be either a Buffer (old behavior) or an object { pdfBuffer, savedPdfRelativePath }
+    const pdfBuffer = result && result.pdfBuffer ? result.pdfBuffer : result;
+    const savedPdfRelativePath = result && result.savedPdfRelativePath ? result.savedPdfRelativePath : null;
+
+    if (!pdfBuffer || pdfBuffer.length === 0) throw new Error("Generated PDF buffer is empty.");
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="proposal_${proposalId}.pdf"`);
+    // If we saved the PDF to disk, expose its URL in a header for the client to preview via iframe
+    if (savedPdfRelativePath) {
+      // If a token was returned, build a secure URL using the token
+      if (result && result.token) {
+        const secureUrl = `${req.protocol}://${req.get('host')}/secure-pdf/${result.token}`;
+        res.setHeader('X-PDF-URL', secureUrl);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, X-PDF-URL');
+      } else {
+        const fullUrl = `${req.protocol}://${req.get('host')}/${savedPdfRelativePath.replace(/\\\\/g, '/')}`;
+        res.setHeader('X-PDF-URL', fullUrl);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition, X-PDF-URL');
+      }
+    } else {
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
     }
-    res.status(200).json({
-      message: 'File uploaded successfully!',
-      url: req.file.path, // The Cloudinary URL
-    });
-  } catch (err) {
-    console.error('Upload Error:', err);
-    res.status(500).json({ error: 'Upload failed' });
-  }
-});
 
-
-// --- PDF Generation Route ---
-app.get('/api/proposals/:id/pdf', async (req, res) => {
-  try {
-    const proposalId = req.params.id;
-    const proposalDoc = await db.collection('proposals').doc(proposalId).get();
-    if (!proposalDoc.exists) {
-      return res.status(404).send('Proposal not found');
-    }
-    const proposalData = proposalDoc.data();
-    const clientDoc = await db.collection('clients').doc(proposalData.clientId).get();
-    const clientData = clientDoc.data();
-
-    let html = fs.readFileSync('./proposal-template.html', 'utf-8');
-    
-    // Replace placeholders
-    html = html.replace('{{title}}', proposalData.title);
-    html = html.replace('{{clientName}}', clientData.name);
-    html = html.replace('{{clientCompany}}', clientData.company || '');
-    html = html.replace('{{currentDate}}', new Date().toLocaleDateString());
-    html = html.replace('{{subtotal}}', proposalData.subtotal.toFixed(2));
-    html = html.replace('{{taxRate}}', proposalData.taxRate);
-    html = html.replace('{{taxAmount}}', proposalData.taxAmount.toFixed(2));
-    html = html.replace('{{discount}}', proposalData.discount.toFixed(2));
-    html = html.replace('{{total}}', proposalData.total.toFixed(2));
-    html = html.replace('{{notes}}', proposalData.notes.replace(/\n/g, '<br>'));
-    const lineItemsHtml = proposalData.lineItems.map(item => `
-      <tr>
-        <td>${item.service}</td>
-        <td>${item.qty}</td>
-        <td>$${item.rate.toFixed(2)}</td>
-        <td>$${(item.qty * item.rate).toFixed(2)}</td>
-      </tr>
-    `).join('');
-    html = html.replace('{{lineItems}}', lineItemsHtml);
-
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-    await browser.close();
-
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Length': pdfBuffer.length,
-      'Content-Disposition': `attachment; filename="proposal-${proposalId}.pdf"`
-    });
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('Error generating PDF:', error);
-    res.status(500).send('Error generating PDF');
+    console.error(`[Server] ❌ Failed to generate PDF. Error: ${error.message}`);
+    res.status(500).send(`Server error: Could not generate the PDF.`);
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port: ${port}`);
+// Secure PDF serving endpoint: validates token file and streams PDF if valid
+app.get('/secure-pdf/:token', async (req, res) => {
+  const { token } = req.params;
+  try {
+    const uploadsDir = path.join(__dirname, 'uploads');
+    // Search for a token file matching the token (simple approach: read all token files)
+    const files = await fs.promises.readdir(uploadsDir);
+    const tokenFiles = files.filter(f => f.endsWith('.token.json'));
+    let matched = null;
+    for (const tf of tokenFiles) {
+      const fullPath = path.join(uploadsDir, tf);
+      const content = await fs.promises.readFile(fullPath, 'utf8');
+      const data = JSON.parse(content);
+      if (data.token === token) {
+        matched = data;
+        break;
+      }
+    }
+    if (!matched) return res.status(404).send('Not found or token invalid');
+    if (matched.expiresAt < Date.now()) return res.status(403).send('Token expired');
+    const pdfPath = path.join(__dirname, matched.pdf);
+    if (!fs.existsSync(pdfPath)) return res.status(404).send('PDF not found');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${path.basename(pdfPath)}"`);
+    const stream = fs.createReadStream(pdfPath);
+    stream.pipe(res);
+  } catch (err) {
+    console.error('Secure PDF error:', err);
+    res.status(500).send('Server error');
+  }
 });
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server is running on port ${PORT}`));

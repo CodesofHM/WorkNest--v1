@@ -1,14 +1,16 @@
-// File: worknest/client/src/components/clients/AddClientForm.jsx
-
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/Card';
+import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
 
 const AddClientForm = ({ onSave, onCancel, initialData }) => {
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', company: '', address: '',
     communicationChannel: 'Email', notes: '', status: 'Active',
   });
-  // NEW: Separate state to handle the tags string
   const [tagsInput, setTagsInput] = useState('');
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (initialData) {
@@ -18,73 +20,88 @@ const AddClientForm = ({ onSave, onCancel, initialData }) => {
         address: initialData.address || '', communicationChannel: initialData.communicationChannel || 'Email',
         notes: initialData.notes || '', status: initialData.status || 'Active',
       });
-      // Convert the tags array back to a comma-separated string for editing
       setTagsInput((initialData.tags || []).join(', '));
-    } else {
-      // Reset form for new client
-      setFormData({
-        name: '', email: '', phone: '', company: '', address: '',
-        communicationChannel: 'Email', notes: '', status: 'Active'
-      });
-      setTagsInput('');
     }
   }, [initialData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'phone') {
-      setFormData({ ...formData, [name]: value.replace(/[^0-9]/g, '') });
-    } else {
-      setFormData({ ...formData, [name]: value });
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const validate = () => {
+    const newErrors = {};
+    if (!formData.name.trim()) newErrors.name = "Name is required.";
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required.";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Email is invalid.";
     }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Convert the comma-separated string into an array of trimmed, non-empty tags
+    if (!validate()) return;
+    
     const tagsArray = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
     onSave({ ...formData, tags: tagsArray });
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3 className="text-xl font-semibold mb-6">
-        {initialData ? 'Edit Client' : 'Add New Client'}
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-        {/* ... (other input fields remain the same) ... */}
-        <input name="name" type="text" placeholder="Full Name" value={formData.name} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" required />
-        <input name="email" type="email" placeholder="Email Address" value={formData.email} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" required />
-        <input name="phone" type="tel" placeholder="Phone Number" value={formData.phone} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" />
-        <input name="company" type="text" placeholder="Company Name" value={formData.company} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" />
-        <input name="address" type="text" placeholder="Address" value={formData.address} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg md:col-span-2" />
-        <select name="status" value={formData.status} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg">
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-        </select>
-        <select name="communicationChannel" value={formData.communicationChannel} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg">
-          <option value="Email">Preferred Contact: Email</option>
-          <option value="WhatsApp">Preferred Contact: WhatsApp</option>
-          <option value="Call">Preferred Contact: Call</option>
-        </select>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>{initialData ? 'Edit Client' : 'Add New Client'}</CardTitle>
+        <CardDescription>Fill in the details below to manage your client information.</CardDescription>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium mb-1">Full Name *</label>
+              <Input id="name" name="name" type="text" placeholder="e.g., John Doe" value={formData.name} onChange={handleChange} />
+              {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-1">Email *</label>
+              <Input id="email" name="email" type="email" placeholder="e.g., john.doe@example.com" value={formData.email} onChange={handleChange} />
+              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+            </div>
+            <Input name="phone" type="tel" placeholder="Phone Number" value={formData.phone} onChange={handleChange} />
+            <Input name="company" type="text" placeholder="Company Name" value={formData.company} onChange={handleChange} />
+          </div>
+          <Input name="address" type="text" placeholder="Address" value={formData.address} onChange={handleChange} className="w-full" />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select name="status" value={formData.status} onChange={handleChange}>
+              <option value="Active">Status: Active</option>
+              <option value="Inactive">Status: Inactive</option>
+            </Select>
+            <Select name="communicationChannel" value={formData.communicationChannel} onChange={handleChange}>
+              <option value="Email">Preferred Contact: Email</option>
+              <option value="WhatsApp">Preferred Contact: WhatsApp</option>
+              <option value="Call">Preferred Contact: Call</option>
+            </Select>
+          </div>
+          
+          {/* THE FIX IS HERE: Corrected 'e.targe.value' to 'e.target.value' */}
+          <Input 
+            name="tags" 
+            type="text" 
+            placeholder="Tags (comma-separated, e.g., High Value, Repeat)" 
+            value={tagsInput} 
+            onChange={(e) => setTagsInput(e.target.value)} 
+          />
 
-        {/* NEW: Tags Input Field */}
-        <input
-          name="tags"
-          type="text"
-          placeholder="Tags (e.g., High Value, Repeat)"
-          value={tagsInput}
-          onChange={(e) => setTagsInput(e.target.value)}
-          className="w-full px-3 py-2 border rounded-lg md:col-span-2"
-        />
-
-        <textarea name="notes" placeholder="Notes (special requirements, etc.)" value={formData.notes} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg md:col-span-2 h-24" />
-      </div>
-      <div className="flex justify-end space-x-4 mt-6">
-        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Cancel</button>
-        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Client</button>
-      </div>
-    </form>
+          <textarea name="notes" placeholder="Notes (special requirements, etc.)" value={formData.notes} onChange={handleChange} className="w-full px-3 py-2 border rounded-md bg-background text-sm h-24" />
+        </CardContent>
+        <CardFooter className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button type="submit">Save Client</Button>
+        </CardFooter>
+      </form>
+    </Card>
   );
 };
 

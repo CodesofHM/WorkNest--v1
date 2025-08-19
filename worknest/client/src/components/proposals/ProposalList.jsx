@@ -1,62 +1,95 @@
-// File: worknest/client/src/components/proposals/ProposalList.jsx
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/Table';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '../ui/DropdownMenu';
+import { MoreHorizontal, Edit, Trash2, Download, Eye } from 'lucide-react';
 
-const ProposalList = ({ proposals, loading, onEdit, onDelete }) => {
-  if (loading) return <p>Loading proposals...</p>;
-  if (proposals.length === 0) return <p>No proposals found. Try adjusting your filter.</p>;
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Accepted': return 'bg-green-100 text-green-800';
-      case 'Ready to Send': return 'bg-blue-100 text-blue-800';
-      case 'Rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800'; // Draft
-    }
+const ProposalList = ({ proposals, clients, loading, onEdit, onDelete, onPreview, onDownload }) => {
+  const getClientName = (clientId) => {
+    const client = clients.find(c => c.id === clientId);
+    return client ? client.name : 'Unknown Client';
   };
 
-  // UPDATED: This function now correctly handles Firestore's timestamp object
-  const formatDate = (timestamp) => {
-    if (!timestamp || typeof timestamp.toDate !== 'function') {
-      return 'N/A';
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case 'Accepted': return 'success';
+      case 'Declined': return 'destructive';
+      case 'Sent': return 'secondary';
+      default: return 'outline';
     }
-    // Use the .toDate() method to convert the Firestore timestamp to a JavaScript Date
-    return timestamp.toDate().toLocaleDateString();
   };
 
   return (
-    <table className="w-full text-left">
-      <thead>
-        <tr className="border-b bg-gray-50">
-          <th className="p-4">Project Title</th>
-          <th className="p-4">Client</th>
-          <th className="p-4">Amount</th>
-          <th className="p-4">Date</th>
-          <th className="p-4">Status</th>
-          <th className="p-4">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {proposals.map(p => (
-          <tr key={p.id} className="border-b hover:bg-gray-50">
-            <td className="p-4 font-medium">{p.title}</td>
-            <td className="p-4 text-gray-600">{p.clientName}</td>
-            <td className="p-4 text-gray-600">${p.total.toFixed(2)}</td>
-            <td className="p-4 text-gray-600">{formatDate(p.createdAt)}</td>
-            <td className="p-4">
-              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(p.status)}`}>
-                {p.status}
-              </span>
-            </td>
-            <td className="p-4">
-              <div className="flex space-x-2">
-                <button onClick={() => onEdit(p)} className="text-blue-600 hover:underline">Edit</button>
-                <button onClick={() => onDelete(p.id)} className="text-red-600 hover:underline">Delete</button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <Card>
+      <CardHeader>
+        <CardTitle>Your Proposals</CardTitle>
+        <CardDescription>A list of all proposals you've created.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <p>Loading proposals...</p>
+        ) : proposals.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-muted-foreground">You haven't created any proposals yet.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {proposals.map(proposal => (
+                <TableRow key={proposal.id}>
+                  <TableCell className="font-medium">{proposal.title}</TableCell>
+                  <TableCell>{getClientName(proposal.clientId)}</TableCell>
+                  <TableCell>₹{proposal.total.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(proposal.status)}>{proposal.status}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {proposal.createdAt ? new Date(proposal.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => onPreview(proposal.id)}>
+                          <Eye className="mr-2 h-4 w-4" /> Preview
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDownload(proposal.id)}>
+                          <Download className="mr-2 h-4 w-4" /> Download PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onEdit(proposal)}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDelete(proposal.id)} className="text-red-600">
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

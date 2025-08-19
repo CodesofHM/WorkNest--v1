@@ -36,22 +36,22 @@ export const deleteProposal = (proposalId) => {
   return deleteDoc(proposalRef);
 };
 
-// --- THIS IS THE CORRECTED AND COMPLETE FUNCTION ---
+// --- NEW FUNCTION for downloading/previewing PDFs ---
 export const getProposalPDF = async (proposalId) => {
   try {
     const response = await fetch(`${API_URL}/generate-pdf/${proposalId}`, {
-      method: 'POST',
+      method: 'POST', // Use POST as defined in your server
     });
 
     if (!response.ok) {
       throw new Error(`Server error: ${response.statusText}`);
     }
     
-  const pdfUrl = response.headers.get('X-PDF-URL');
-  return { response, pdfUrl };
+    // Return the response object to handle blob and headers in the component
+    return response;
 
   } catch (error) {
     console.error("Error fetching proposal PDF:", error);
-    throw error;
+    throw error; // Re-throw the error to be caught by the calling function
   }
 };

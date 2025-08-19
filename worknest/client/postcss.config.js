@@ -1,5 +1,3 @@
-// File: worknest/client/postcss.config.js
-
 export default {
   plugins: {
     tailwindcss: {},

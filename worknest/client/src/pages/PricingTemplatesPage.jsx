@@ -4,6 +4,9 @@ import { useAuth } from '../hooks/useAuth';
 import { addTemplate, getTemplatesForUser, deleteTemplate } from '../services/pricingTemplateService';
 import AddTemplateForm from '../components/templates/AddTemplateForm';
 import TemplateList from '../components/templates/TemplateList';
+import { Button } from '../components/ui/Button';
+import { PlusCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 
 const PricingTemplatesPage = () => {
   const { currentUser } = useAuth();
@@ -49,24 +52,33 @@ const PricingTemplatesPage = () => {
     }
   };
 
+  if (isFormVisible) {
+    return (
+      <AddTemplateForm
+        onSave={handleSaveTemplate}
+        onCancel={() => setIsFormVisible(false)}
+      />
+    );
+  }
+
   return (
-    <div className="p-8">
-      <header className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Pricing Templates</h1>
-        <button
-          onClick={() => setIsFormVisible(true)}
-          className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition"
-        >
-          + New Template
-        </button>
-      </header>
-      <main className="bg-white p-6 rounded-lg shadow-md">
-        {isFormVisible ? (
-          <AddTemplateForm onSave={handleSaveTemplate} onCancel={() => setIsFormVisible(false)} />
-        ) : (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Pricing Templates</h1>
+          <p className="text-muted-foreground">Create and manage your pricing templates.</p>
+        </div>
+        <Button onClick={() => setIsFormVisible(true)}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          New Template
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent>
           <TemplateList templates={templates} loading={loading} onDelete={handleDeleteTemplate} />
-        )}
-      </main>
+        </CardContent>
+      </Card>
     </div>
   );
 };

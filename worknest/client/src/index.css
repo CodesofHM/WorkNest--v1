@@ -4,15 +4,20 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Adjusted for the new layout */
+    --background: 0 0% 100%; /* White for cards, header, sidebar */
     --foreground: 222.2 84% 4.9%;
+    
+    /* NEW: A light gray for the main content background */
+    --secondary: 240 5% 96%; 
+
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
@@ -22,8 +27,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    /* UPDATED: Changed the ring color to a nice blue */
-    --ring: 217 91% 60%;
+    --ring: 222.2 47.4% 11.2%;
     --radius: 0.5rem;
   }
 }
@@ -32,7 +36,8 @@
   * {
     @apply border-border;
   }
+  /* Body will use the secondary (gray) color as the main background */
   body {
-    @apply bg-background text-foreground;
+    @apply bg-secondary text-foreground;
   }
 }
