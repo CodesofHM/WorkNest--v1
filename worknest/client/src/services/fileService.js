@@ -1,25 +1,35 @@
-// File: worknest/client/src/services/fileService.js
+import { getAuth } from "firebase/auth";
 
-const API_URL = 'http://localhost:5000'; // Your server URL
+const API_URL = "http://localhost:5000";
 
 export const uploadFile = async (file) => {
-  const formData = new FormData();
-  formData.append('file', file); // 'file' must match the key on your server's multer middleware
+  const auth = getAuth();
+  const user = auth.currentUser;
 
-  try {
-    const response = await fetch(`${API_URL}/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Upload failed with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data; // This should return { message: '...', url: '...' }
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    throw error; // Re-throw the error to be caught by the component
+  if (!user) {
+    throw new Error("You must be logged in to upload files.");
   }
+
+  const token = await user.getIdToken();
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_URL}/upload`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  // 💡 START OF CHANGE
+  if (!response.ok) {
+    // Try to parse the error response from the server
+    const errorData = await response.json();
+    // Throw an error with the specific message from the server
+    throw new Error(errorData.message || `Upload failed with status: ${response.status}`);
+  }
+  // 💡 END OF CHANGE
+
+  return response.json();
 };

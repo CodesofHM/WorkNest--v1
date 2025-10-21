@@ -32,6 +32,12 @@ const AddTemplateForm = ({ onSave, onCancel }) => {
         <input type="text" placeholder="Template Name (e.g., Basic Website Package)" value={templateName} onChange={(e) => setTemplateName(e.target.value)} className="w-full px-3 py-2 border rounded-lg" required />
         
         <h4 className="font-semibold pt-2">Line Items</h4>
+          <div className="flex items-center space-x-2 text-sm font-medium text-gray-500 px-1">
+          <div className="flex-grow">Service Description</div>
+          <div className="w-20">Qty</div>
+          <div className="w-24">Rate ($)</div>
+          <div className="w-10 text-transparent">Remove</div> {/* Spacer for alignment */}
+        </div>
         {lineItems.map((item, index) => (
           <div key={index} className="flex items-center space-x-2">
             <input type="text" placeholder="Service Description" value={item.service} onChange={(e) => handleItemChange(index, 'service', e.target.value)} className="flex-grow px-3 py-2 border rounded-lg" required />
