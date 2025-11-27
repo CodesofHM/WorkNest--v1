@@ -2,78 +2,161 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Proposal - {{proposalTitle}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposal</title>
     <style>
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #222; }
-        .container { max-width: 900px; margin: 24px auto; padding: 24px; }
-        .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .logo { max-height: 60px; }
-        .owner { text-align: right; }
-        .title { margin-top: 18px; margin-bottom: 8px; font-size: 22px; }
-        .meta { display: flex; justify-content: space-between; margin-bottom: 18px; }
-        .meta .left, .meta .right { width: 48%; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-        th, td { padding: 10px 8px; border: 1px solid #e6e6e6; }
-        th { background: #f5f5f5; text-align: left; }
-        .text-right { text-align: right; }
-        .summary { width: 300px; float: right; margin-top: 8px; }
-        .terms { clear: both; margin-top: 28px; }
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+        .container {
+            width: 800px;
+            margin: 40px auto;
+            padding: 40px;
+            border: 1px solid #e0e0e0;
+            background-color: #fff;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #000;
+        }
+        .header .owner-info {
+            text-align: right;
+        }
+        .header .owner-info h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .header .owner-info p {
+            margin: 2px 0;
+            font-size: 14px;
+        }
+        .owner-logo {
+            max-width: 120px;
+            max-height: 120px;
+        }
+        .proposal-details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        .proposal-details .client-info,
+        .proposal-details .proposal-meta {
+            width: 48%;
+        }
+        .proposal-details h3 {
+            margin-top: 0;
+            font-size: 16px;
+            font-weight: bold;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 5px;
+        }
+        .proposal-details p {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+        }
+        .services-table {
+            width: 100%;
+            margin-top: 40px;
+            border-collapse: collapse;
+        }
+        .services-table th,
+        .services-table td {
+            border: 1px solid #e0e0e0;
+            padding: 12px;
+            font-size: 14px;
+            text-align: left;
+        }
+        .services-table thead {
+            background-color: #f9f9f9;
+        }
+        .services-table th {
+            font-weight: bold;
+        }
+        .services-table .total-row td {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .terms, .footer {
+            margin-top: 40px;
+            font-size: 12px;
+        }
+        .terms h3 {
+            font-size: 16px;
+        }
+        .text-right {
+            text-align: right;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="top">
-            <div class="brand">
-                <!-- Owner logo placeholder -->
-                <img class="logo" src="{{ownerLogo}}" alt="Logo" />
+        <div class="header">
+            <div>
+                <img src="{{ownerLogo}}" alt="Logo" class="owner-logo">
             </div>
-            <div class="owner">
-                <div><strong>{{ownerName}}</strong></div>
-                <div>{{ownerField}}</div>
-                <div>{{ownerPhone}}</div>
-                <div>{{ownerEmail}}</div>
-            </div>
-        </div>
-
-        <div class="title">Proposal: {{proposalTitle}}</div>
-
-        <div class="meta">
-            <div class="left">
-                <strong>Billed To</strong>
-                <div>{{clientName}}</div>
-                <div>{{clientCompany}}</div>
-                <div>{{clientEmail}}</div>
-            </div>
-            <div class="right text-right">
-                <div><strong>Date:</strong> {{proposalDate}}</div>
-                <div><strong>Valid Until:</strong> {{validUntil}}</div>
+            <div class="owner-info">
+                <h1>{{ownerName}}</h1>
+                <p>{{ownerField}}</p>
+                <p>{{ownerEmail}}</p>
+                <p>{{ownerPhone}}</p>
             </div>
         </div>
 
-        <table>
+        <div class="proposal-details">
+            <div class="client-info">
+                <h3>Prepared For:</h3>
+                <p><strong>{{clientName}}</strong></p>
+                <p>{{clientCompany}}</p>
+                <p>{{clientEmail}}</p>
+            </div>
+            <div class="proposal-meta">
+                <h3>Proposal Details:</h3>
+                <p><strong>Title:</strong> {{proposalTitle}}</p>
+                <p><strong>Date Issued:</strong> {{proposalDate}}</p>
+                <p><strong>Valid Until:</strong> {{validUntil}}</p>
+            </div>
+        </div>
+
+        <table class="services-table">
             <thead>
                 <tr>
-                    <th style="width:50%">Service</th>
-                    <th style="width:15%">Qty</th>
-                    <th style="width:15%">Unit Price</th>
-                    <th style="width:20%">Line Total</th>
+                    <th>Service Description</th>
+                    <th style="width: 15%; text-align: center;">Quantity</th>
+                    <th style="width: 20%;" class="text-right">Rate</th>
+                    <th style="width: 20%;" class="text-right">Line Total</th>
                 </tr>
             </thead>
             <tbody>
                 {{servicesRows}}
             </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" class="text-right"><strong>Subtotal</strong></td>
+                    <td class="text-right"><strong>{{subtotal}}</strong></td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="3" class="text-right">Total</td>
+                    <td class="text-right">{{total}}</td>
+                </tr>
+            </tfoot>
         </table>
 
-        <div class="summary">
-            <table>
-                <tr><td>Subtotal</td><td class="text-right">{{subtotal}}</td></tr>
-                <tr><td><strong>Total</strong></td><td class="text-right"><strong>{{total}}</strong></td></tr>
-            </table>
+        <div class="terms">
+            <h3>Terms & Conditions</h3>
+            <p>{{terms}}</p>
         </div>
 
-        <div class="terms">
-            <h4>Terms & Conditions</h4>
-            <p>{{terms}}</p>
+        <div class="footer">
+            <p>Thank you for the opportunity to work with you.</p>
         </div>
     </div>
 </body>
