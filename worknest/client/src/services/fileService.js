@@ -10,26 +10,51 @@ export const uploadFile = async (file) => {
     throw new Error("You must be logged in to upload files.");
   }
 
+  // Validate file before uploading
+  if (!file) {
+    throw new Error("No file selected.");
+  }
+
+  if (file.size > 1024 * 1024) {
+    throw new Error("File size exceeds 1MB limit.");
+  }
+
+  const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (!validTypes.includes(file.type)) {
+    throw new Error("Only JPG and PNG files are allowed.");
+  }
+
   const token = await user.getIdToken();
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_URL}/upload`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  });
+  try {
+    const response = await fetch(`${API_URL}/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
 
-  // 💡 START OF CHANGE
-  if (!response.ok) {
-    // Try to parse the error response from the server
-    const errorData = await response.json();
-    // Throw an error with the specific message from the server
-    throw new Error(errorData.message || `Upload failed with status: ${response.status}`);
+    if (!response.ok) {
+      // Try to parse the error response from the server
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: `Upload failed with status: ${response.status}` };
+      }
+      
+      throw new Error(errorData.message || `Upload failed with status: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    // Re-throw the error with context
+    if (error instanceof TypeError) {
+      throw new Error(`Network error: ${error.message}. Make sure the server is running at ${API_URL}`);
+    }
+    throw error;
   }
-  // 💡 END OF CHANGE
-
-  return response.json();
 };

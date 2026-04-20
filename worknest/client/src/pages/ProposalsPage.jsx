@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { getProposalsForUser, addProposal, updateProposal, deleteProposal, getProposalPDF } from '../services/proposalService';
+import { getProposalsForUser, addProposal, updateProposal, deleteProposal, getProposalPDFBlob, getProposalPDFUrl } from '../services/proposalService';
 import { getClientsForUser } from '../services/clientService';
+import { getTemplatesForUser } from '../services/pricingTemplateService';
+import { sendWhatsAppDocument } from '../services/whatsappService';
+import { logClientCommunication } from '../services/clientCommunicationService';
 import ProposalList from '../components/proposals/ProposalList';
 import AddProposalForm from '../components/proposals/AddProposalForm';
 import { Button } from '../components/ui/Button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, FileText, CheckCircle2, PencilRuler } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import toast from 'react-hot-toast';
+import PageHero from '../components/layout/PageHero';
 
 const ProposalsPage = () => {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
   const [proposals, setProposals] = useState([]);
   const [clients, setClients] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState(null);
@@ -22,12 +26,14 @@ const ProposalsPage = () => {
     if (!currentUser) return;
     try {
       setLoading(true);
-      const [userProposals, userClients] = await Promise.all([
+      const [userProposals, userClients, userTemplates] = await Promise.all([
         getProposalsForUser(currentUser.uid),
         getClientsForUser(currentUser.uid),
+        getTemplatesForUser(currentUser.uid),
       ]);
       setProposals(userProposals);
       setClients(userClients);
+      setTemplates(userTemplates);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to fetch proposals and clients.");
@@ -44,35 +50,34 @@ const ProposalsPage = () => {
     const toastId = toast.loading('Saving proposal...');
     try {
       if (editingProposal) {
-        await updateProposal(editingProposal.id, proposalData);
+        const selectedClient = clients.find((client) => client.id === proposalData.clientId);
+        await updateProposal(editingProposal.id, {
+          ...proposalData,
+          clientName: selectedClient?.name || editingProposal.clientName || '',
+        });
         toast.success("Proposal updated successfully!", { id: toastId });
         if (proposalData.status !== 'Draft') {
           try {
-            const { response, pdfUrl } = await getProposalPDF(editingProposal.id);
-            if (pdfUrl) window.open(pdfUrl, '_blank');
-            else if (response && response.ok) {
-              const blob = await response.blob();
-              const tmpUrl = window.URL.createObjectURL(blob);
-              window.open(tmpUrl, '_blank');
-            }
+            const blob = await getProposalPDFBlob(editingProposal.id);
+            const tmpUrl = window.URL.createObjectURL(blob);
+            window.open(tmpUrl, '_blank');
           } catch (err) {
             console.warn('Auto-preview failed:', err);
           }
         }
       } else {
-        const docRef = await addProposal(currentUser.uid, proposalData);
+        const selectedClient = clients.find((client) => client.id === proposalData.clientId);
+        const docRef = await addProposal(currentUser.uid, {
+          ...proposalData,
+          clientName: selectedClient?.name || '',
+        });
         toast.success("Proposal created successfully!", { id: toastId });
         // If saved as Ready, automatically generate and open preview in new tab
         if (proposalData.status !== 'Draft') {
           try {
-            const { response, pdfUrl } = await getProposalPDF(docRef.id);
-            if (pdfUrl) {
-              window.open(pdfUrl, '_blank');
-            } else if (response && response.ok) {
-              const blob = await response.blob();
-              const tmpUrl = window.URL.createObjectURL(blob);
-              window.open(tmpUrl, '_blank');
-            }
+            const blob = await getProposalPDFBlob(docRef.id);
+            const tmpUrl = window.URL.createObjectURL(blob);
+            window.open(tmpUrl, '_blank');
           } catch (err) {
             console.warn('Auto-preview failed:', err);
           }
@@ -105,55 +110,85 @@ const ProposalsPage = () => {
     }
   };
 
-  const handlePDFAction = async (proposalId, action) => {
+  const getProposalFilename = (proposalTitle) => {
+    const normalizedTitle = (proposalTitle || 'proposal')
+      .trim()
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '')
+      .replace(/\s+/g, '_');
+
+    return `${normalizedTitle || 'proposal'}.pdf`;
+  };
+
+  const handlePDFAction = async (proposalId, action, proposalTitle) => {
     const toastId = toast.loading('Generating PDF...');
     try {
-      const { response, pdfUrl } = await getProposalPDF(proposalId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const blob = await getProposalPDFBlob(proposalId);
+      const url = window.URL.createObjectURL(blob);
 
       if (action === 'preview') {
-        if (pdfUrl) {
-          // Use the server-saved URL for stable preview
-          window.open(pdfUrl, '_blank');
-          toast.success('PDF ready for preview!', { id: toastId });
-        } else {
-          // Fallback to blob URL
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          window.open(url, '_blank');
-          toast.success('PDF ready for preview!', { id: toastId });
-        }
+        window.open(url, '_blank');
+        toast.success('PDF ready for preview!', { id: toastId });
       } else {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        const contentDisposition = response.headers.get('content-disposition');
-        let fileName = 'proposal.pdf';
-        if (contentDisposition) {
-            const fileNameMatch = contentDisposition.match(/filename=\"(.+)\"/);
-            if (fileNameMatch && fileNameMatch.length === 2) fileName = fileNameMatch[1];
-        }
         a.href = url;
-        a.download = fileName;
+        a.download = getProposalFilename(proposalTitle);
         document.body.appendChild(a);
         a.click();
         a.remove();
         toast.success('PDF downloaded!', { id: toastId });
-        window.URL.revokeObjectURL(url);
       }
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("PDF Action Error:", error);
       toast.error(`Failed to generate PDF: ${error.message}`, { id: toastId });
     }
   };
 
+  const handleSendProposalWhatsApp = async (proposal) => {
+    const client = clients.find((item) => item.id === proposal.clientId);
+
+    if (!client?.phone) {
+      toast.error('This client does not have a phone number saved yet.');
+      return;
+    }
+
+    const toastId = toast.loading('Preparing WhatsApp delivery...');
+
+    try {
+      const pdfUrl = await getProposalPDFUrl(proposal.id);
+      await sendWhatsAppDocument({
+        to: client.phone,
+        documentUrl: pdfUrl,
+        caption: `Hi ${client.name || proposal.clientName || ''}, here is your proposal PDF from WorkNest.`,
+        filename: `${(proposal.title || 'proposal').replace(/\s+/g, '_')}.pdf`,
+      });
+
+      await logClientCommunication({
+        userId: currentUser.uid,
+        clientId: client.id,
+        invoiceId: null,
+        channel: 'WhatsApp',
+        tone: 'Polite',
+        type: 'document_send',
+        message: `Proposal PDF sent via WhatsApp: ${proposal.title}`,
+      });
+
+      toast.success('Proposal PDF sent on WhatsApp.', { id: toastId });
+    } catch (error) {
+      console.error('WhatsApp proposal send failed:', error);
+      toast.error(error.message || 'Failed to send the proposal PDF on WhatsApp.', { id: toastId });
+    }
+  };
+
+  const draftCount = proposals.filter((proposal) => proposal.status === 'Draft').length;
+  const readyCount = proposals.filter((proposal) => proposal.status === 'Ready' || proposal.status === 'Pending').length;
+  const acceptedCount = proposals.filter((proposal) => proposal.status === 'Accepted').length;
+
   if (isFormOpen) {
     return (
       <AddProposalForm
         clients={clients}
+        templates={templates}
         initialData={editingProposal}
         onSave={handleSave}
         onCancel={() => { setIsFormOpen(false); setEditingProposal(null); }}
@@ -163,26 +198,76 @@ const ProposalsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Proposals</h1>
-          <p className="text-muted-foreground">Create and manage your client proposals.</p>
-        </div>
-        <Button onClick={() => { setEditingProposal(null); setIsFormOpen(true); }}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Create Proposal
-        </Button>
+      <PageHero
+        themeClassName="bg-[linear-gradient(135deg,#0f172a_0%,#111827_45%,#2563eb_100%)]"
+        badgeText="Proposal Studio"
+        title="Create polished proposals faster and move client work from draft to approval smoothly."
+        description="Apply saved pricing templates, review status at a glance, and generate PDF output from one focused workspace."
+        helperLabel="Quick start"
+        helperText="Open a new proposal when you want to send pricing, scope, and PDF-ready terms to a client."
+        actionLabel="Create Proposal"
+        actionIcon={PlusCircle}
+        onAction={() => { setEditingProposal(null); setIsFormOpen(true); }}
+      />
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Drafts</p>
+              <p className="mt-2 text-3xl font-semibold">{draftCount}</p>
+            </div>
+            <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+              <PencilRuler className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Ready / Pending</p>
+              <p className="mt-2 text-3xl font-semibold">{readyCount}</p>
+            </div>
+            <div className="rounded-2xl bg-amber-50 p-3 text-amber-700">
+              <FileText className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Accepted</p>
+              <p className="mt-2 text-3xl font-semibold">{acceptedCount}</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-700">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <ProposalList
-        proposals={proposals}
-        clients={clients}
-        loading={loading}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onPreview={(id) => handlePDFAction(id, 'preview')}
-        onDownload={(id) => handlePDFAction(id, 'download')}
-      />
+      <Card className="border-slate-200 bg-white/95 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div>
+            <CardTitle>Proposal Library</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Review status, open details, and preview or download client-ready PDFs.</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
+            Total proposals <span className="font-semibold text-slate-900">{proposals.length}</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ProposalList
+            proposals={proposals}
+            loading={loading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onPreview={(id) => handlePDFAction(id, 'preview')}
+            onDownload={(id, title) => handlePDFAction(id, 'download', title)}
+            onSendWhatsApp={handleSendProposalWhatsApp}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };

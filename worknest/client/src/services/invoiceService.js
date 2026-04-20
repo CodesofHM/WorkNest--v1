@@ -1,7 +1,8 @@
 // File: worknest/client/src/services/invoiceService.js
 
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { logActivity } from './activityService';
 
 const INVOICES_COLLECTION = 'invoices';
 
@@ -10,7 +11,7 @@ export const addInvoice = (userId, invoiceData) => {
   return addDoc(collection(db, INVOICES_COLLECTION), {
     userId,
     ...invoiceData,
-    status: 'Pending', // Default status
+    status: invoiceData.status || 'Pending',
     createdAt: new Date(),
   });
 };
@@ -26,4 +27,20 @@ export const getInvoicesForUser = async (userId) => {
   });
   
   return invoices;
+};
+
+export const updateInvoice = async (invoiceId, updatedData, userId) => {
+  const invoiceRef = doc(db, INVOICES_COLLECTION, invoiceId);
+  await updateDoc(invoiceRef, updatedData);
+  if (userId) {
+    await logActivity(userId, 'Invoice Updated', `Invoice ${updatedData.clientName ? `for ${updatedData.clientName}` : ''} was updated.`);
+  }
+};
+
+export const deleteInvoice = async (invoiceId, userId, clientName = '') => {
+  const invoiceRef = doc(db, INVOICES_COLLECTION, invoiceId);
+  await deleteDoc(invoiceRef);
+  if (userId) {
+    await logActivity(userId, 'Invoice Deleted', `Invoice ${clientName ? `for ${clientName}` : ''} was deleted.`);
+  }
 };

@@ -3,6 +3,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { auth } from '../services/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { logout as logoutUser } from '../services/authService';
 
 // 1. Export the context so other files can use it
 export const AuthContext = createContext();
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     currentUser,
+    logout: logoutUser,
   };
 
   return (

@@ -1,6 +1,15 @@
+const fs = require('fs');
 const puppeteer = require('puppeteer');
 
 let browserInstance = null;
+const browserCandidates = [
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+];
+
+const executablePath = browserCandidates.find((candidate) => fs.existsSync(candidate));
 
 /**
  * A robust health check that ensures the browser can create and close a page.
@@ -27,15 +36,15 @@ const initializeBrowser = async () => {
   try {
     browserInstance = await puppeteer.launch({
       headless: true,
-      pipe: true, // More stable connection method on some systems
+      ...(executablePath ? { executablePath } : {}),
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--no-zygote',
-        '--single-process', // Can improve stability in some environments
       ],
+      protocolTimeout: 60000,
     });
     console.log('[Browser Service] Browser initialized successfully.');
   } catch (error) {

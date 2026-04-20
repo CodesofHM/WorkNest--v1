@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { saveUserProfileMeta } from '../services/userService';
+import { getUserProfileMeta, saveUserProfileMeta } from '../services/userService';
 import { updateProfile } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import toast from 'react-hot-toast';
@@ -25,12 +25,24 @@ const MyAccountPage = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (currentUser) {
+    const loadProfile = async () => {
+      if (!currentUser) return;
+
       setDisplayName(currentUser.displayName || '');
       setEmail(currentUser.email || '');
       setPhotoURL(currentUser.photoURL || '');
-      // Optionally fetch user meta for companyName, address, phoneNumber
-    }
+
+      try {
+        const profileMeta = await getUserProfileMeta(currentUser.uid);
+        setCompanyName(profileMeta.companyName || '');
+        setAddress(profileMeta.address || '');
+        setPhoneNumber(profileMeta.phoneNumber || '');
+      } catch (error) {
+        console.error('Error loading profile meta:', error);
+      }
+    };
+
+    loadProfile();
   }, [currentUser]);
 
   const handleFileChange = (e) => {
@@ -70,7 +82,22 @@ const MyAccountPage = () => {
       toast.success('Settings saved successfully!', { id: toastId });
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save settings.', { id: toastId });
+      
+      // Provide specific error messages based on the error
+      let errorMessage = 'Failed to save settings.';
+      if (error.message) {
+        if (error.message.includes('Network error')) {
+          errorMessage = 'Network error. Please ensure the server is running.';
+        } else if (error.message.includes('File size')) {
+          errorMessage = 'File is too large. Please use a file under 1MB.';
+        } else if (error.message.includes('PNG') || error.message.includes('JPG')) {
+          errorMessage = 'Invalid file type. Please use JPG or PNG.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -108,12 +135,12 @@ const MyAccountPage = () => {
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 className="hidden"
-                accept="image/png, image/jpeg, image/gif"
+                accept="image/png, image/jpeg"
               />
               <Button type="button" variant="outline" onClick={() => fileInputRef.current.click()} disabled={loading}>
                 {loading ? 'Uploading...' : 'Change Photo'}
               </Button>
-              <p className="text-xs text-muted-foreground mt-2">JPG, GIF or PNG. 1MB max.</p>
+              <p className="text-xs text-muted-foreground mt-2">JPG or PNG. 1MB max.</p>
             </div>
           </div>
           <div className="space-y-2">

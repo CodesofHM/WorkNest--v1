@@ -7,8 +7,9 @@ import toast from 'react-hot-toast';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select'; // Import the new Select component
-import { PlusCircle, Search } from 'lucide-react';
-import { Card, CardContent } from '../components/ui/Card';
+import { PlusCircle, Search, Users, UserCheck, UserX } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import PageHero from '../components/layout/PageHero';
 
 const ClientsPage = () => {
   const { currentUser } = useAuth();
@@ -114,6 +115,9 @@ const ClientsPage = () => {
     return filtered;
   }, [clients, searchTerm, statusFilter, sortConfig]);
 
+  const activeClients = clients.filter((client) => client.status === 'Active').length;
+  const inactiveClients = clients.filter((client) => client.status === 'Inactive').length;
+
   if (isFormVisible) {
     return (
       <AddClientForm
@@ -126,20 +130,60 @@ const ClientsPage = () => {
 
   return (
     <div className="space-y-6">
-      <header className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Clients</h1>
-          <p className="text-muted-foreground">Manage your client list.</p>
-        </div>
-        <Button onClick={() => { setEditingClient(null); setIsFormVisible(true); }}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Client
-        </Button>
-      </header>
+      <PageHero
+        themeClassName="bg-[linear-gradient(135deg,#020617_0%,#0f172a_45%,#1d4ed8_100%)]"
+        badgeText="Client Hub"
+        title="Keep every client relationship in one clean, easy-to-scan workspace."
+        description="Track who is active, filter your pipeline quickly, and keep contact details ready for proposals, contracts, and invoices."
+        helperLabel="Quick start"
+        helperText="Add a new client, then use search and filters to keep your directory tidy."
+        actionLabel="Add Client"
+        actionIcon={PlusCircle}
+        onAction={() => { setEditingClient(null); setIsFormVisible(true); }}
+      />
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4 mb-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Clients</p>
+              <p className="mt-2 text-3xl font-semibold">{clients.length}</p>
+            </div>
+            <div className="rounded-2xl bg-sky-50 p-3 text-sky-700">
+              <Users className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Active</p>
+              <p className="mt-2 text-3xl font-semibold">{activeClients}</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-700">
+              <UserCheck className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-200 bg-white/95 shadow-sm">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Inactive</p>
+              <p className="mt-2 text-3xl font-semibold">{inactiveClients}</p>
+            </div>
+            <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+              <UserX className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-slate-200 bg-white/95 shadow-sm">
+        <CardHeader>
+          <CardTitle>Client Directory</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <div className="mb-4 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 lg:flex-row lg:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -159,6 +203,9 @@ const ClientsPage = () => {
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </Select>
+            <div className="rounded-xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
+              Showing <span className="font-semibold text-slate-900">{sortedAndFilteredClients.length}</span> clients
+            </div>
           </div>
 
           <ClientList

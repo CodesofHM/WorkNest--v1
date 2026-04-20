@@ -32,9 +32,8 @@ const AddClientForm = ({ onSave, onCancel, initialData }) => {
   const validate = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Name is required.";
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required.";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    if (!formData.company.trim()) newErrors.company = "Company name is required.";
+    if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid.";
     }
     setErrors(newErrors);
@@ -64,12 +63,16 @@ const AddClientForm = ({ onSave, onCancel, initialData }) => {
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">Email *</label>
+              <label htmlFor="email" className="block text-sm font-medium mb-1">Email</label>
               <Input id="email" name="email" type="email" placeholder="e.g., john.doe@example.com" value={formData.email} onChange={handleChange} />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
             <Input name="phone" type="tel" placeholder="Phone Number" value={formData.phone} onChange={handleChange} />
-            <Input name="company" type="text" placeholder="Company Name" value={formData.company} onChange={handleChange} />
+            <div>
+              <label htmlFor="company" className="block text-sm font-medium mb-1">Company Name *</label>
+              <Input id="company" name="company" type="text" placeholder="e.g., Acme Studio" value={formData.company} onChange={handleChange} />
+              {errors.company && <p className="text-red-500 text-xs mt-1">{errors.company}</p>}
+            </div>
           </div>
           <Input name="address" type="text" placeholder="Address" value={formData.address} onChange={handleChange} className="w-full" />
           

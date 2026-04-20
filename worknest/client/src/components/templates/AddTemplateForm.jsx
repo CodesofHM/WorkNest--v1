@@ -1,9 +1,12 @@
 // File: worknest/client/src/components/templates/AddTemplateForm.jsx
 import React, { useState } from 'react';
+import { Button } from '../ui/Button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card';
+import { Input } from '../ui/Input';
 
-const AddTemplateForm = ({ onSave, onCancel }) => {
-  const [templateName, setTemplateName] = useState('');
-  const [lineItems, setLineItems] = useState([{ service: '', qty: 1, rate: 0 }]);
+const AddTemplateForm = ({ onSave, onCancel, initialData }) => {
+  const [templateName, setTemplateName] = useState(initialData?.templateName || '');
+  const [lineItems, setLineItems] = useState(initialData?.lineItems || [{ service: '', qty: 1, rate: 0 }]);
 
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...lineItems];
@@ -26,33 +29,37 @@ const AddTemplateForm = ({ onSave, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3 className="text-xl font-semibold mb-4">New Pricing Template</h3>
-      <div className="space-y-4">
-        <input type="text" placeholder="Template Name (e.g., Basic Website Package)" value={templateName} onChange={(e) => setTemplateName(e.target.value)} className="w-full px-3 py-2 border rounded-lg" required />
-        
+    <Card className="mx-auto w-full max-w-3xl">
+      <CardHeader>
+        <CardTitle>{initialData ? 'Edit Pricing Template' : 'New Pricing Template'}</CardTitle>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+      <CardContent className="space-y-4">
+        <Input type="text" placeholder="Template Name (e.g., Basic Website Package)" value={templateName} onChange={(e) => setTemplateName(e.target.value)} required />
+
         <h4 className="font-semibold pt-2">Line Items</h4>
           <div className="flex items-center space-x-2 text-sm font-medium text-gray-500 px-1">
           <div className="flex-grow">Service Description</div>
           <div className="w-20">Qty</div>
           <div className="w-24">Rate ($)</div>
-          <div className="w-10 text-transparent">Remove</div> {/* Spacer for alignment */}
+          <div className="w-10 text-transparent">Remove</div>
         </div>
         {lineItems.map((item, index) => (
           <div key={index} className="flex items-center space-x-2">
-            <input type="text" placeholder="Service Description" value={item.service} onChange={(e) => handleItemChange(index, 'service', e.target.value)} className="flex-grow px-3 py-2 border rounded-lg" required />
-            <input type="number" placeholder="Qty" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', Number(e.target.value))} className="w-20 px-3 py-2 border rounded-lg" required />
-            <input type="number" placeholder="Rate ($)" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', Number(e.target.value))} className="w-24 px-3 py-2 border rounded-lg" required />
+            <Input type="text" placeholder="Service Description" value={item.service} onChange={(e) => handleItemChange(index, 'service', e.target.value)} className="flex-grow" required />
+            <Input type="number" placeholder="Qty" value={item.qty} onChange={(e) => handleItemChange(index, 'qty', Number(e.target.value))} className="w-20" required />
+            <Input type="number" placeholder="Rate ($)" value={item.rate} onChange={(e) => handleItemChange(index, 'rate', Number(e.target.value))} className="w-24" required />
             <button type="button" onClick={() => removeItem(index)} className="text-red-500 hover:text-red-700 p-2">&times;</button>
           </div>
         ))}
         <button type="button" onClick={addItem} className="text-sm text-blue-600 hover:underline">+ Add Item</button>
-      </div>
-      <div className="flex justify-end space-x-4 mt-6">
-        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-        <button type="submit" className="px-4 py-2 bg-indigo-500 text-white rounded-lg">Save Template</button>
-      </div>
+      </CardContent>
+      <CardFooter className="justify-end space-x-4">
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="submit">{initialData ? 'Update Template' : 'Save Template'}</Button>
+      </CardFooter>
     </form>
+    </Card>
   );
 };
 

@@ -12,10 +12,12 @@ import ProtectedRoute from './components/ProtectedRoute';
 // Import Page Components
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
+import WelcomePage from './pages/WelcomePage';
 import Dashboard from './pages/Dashboard';
 import ClientsPage from './pages/ClientsPage';
 import ClientProfilePage from './pages/ClientProfilePage';
 import ProposalsPage from './pages/ProposalsPage';
+import ProposalDetailPage from './pages/ProposalDetailPage';
 import ContractsPage from './pages/ContractsPage';
 import InvoicesPage from './pages/InvoicesPage';
 import PricingTemplatesPage from './pages/PricingTemplatesPage';
@@ -34,6 +36,7 @@ function App() {
       <Routes>
         
         {/* --- Public Authentication Routes --- */}
+        <Route path="/" element={currentUser ? <Navigate to="/dashboard" /> : <WelcomePage />} />
         <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage />} />
         <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" /> : <SignupPage />} />
 
@@ -42,6 +45,7 @@ function App() {
         <Route path="/clients" element={<ProtectedRoute><MainLayout><ClientsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/clients/:clientId" element={<ProtectedRoute><MainLayout><ClientProfilePage /></MainLayout></ProtectedRoute>} />
         <Route path="/proposals" element={<ProtectedRoute><MainLayout><ProposalsPage /></MainLayout></ProtectedRoute>} />
+        <Route path="/proposals/:proposalId" element={<ProtectedRoute><MainLayout><ProposalDetailPage /></MainLayout></ProtectedRoute>} />
         <Route path="/contracts" element={<ProtectedRoute><MainLayout><ContractsPage /></MainLayout></ProtectedRoute>} />
         <Route path="/invoices" element={<ProtectedRoute><MainLayout><InvoicesPage /></MainLayout></ProtectedRoute>} />
         <Route path="/templates" element={<ProtectedRoute><MainLayout><PricingTemplatesPage /></MainLayout></ProtectedRoute>} />
@@ -53,7 +57,7 @@ function App() {
         <Route path="/proposal/preview" element={<ProtectedRoute><PdfViewerPage /></ProtectedRoute>} />
         
         {/* --- Default Redirect Route --- */}
-        <Route path="*" element={<Navigate to={currentUser ? "/dashboard" : "/login"} />} />
+        <Route path="*" element={<Navigate to={currentUser ? "/dashboard" : "/"} />} />
 
       </Routes>
     </Router>

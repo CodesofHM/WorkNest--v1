@@ -5,19 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Proposal</title>
     <style>
+        @page {
+            margin: 30px 28px 34px;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: "Helvetica Neue", Arial, sans-serif;
             color: #333;
-            line-height: 1.6;
+            line-height: 1.7;
             margin: 0;
             padding: 0;
             background-color: #ffffff;
+            font-size: 15px;
         }
         .container {
             width: 800px;
             margin: 40px auto;
             padding: 40px;
-            border: 1px solid #e0e0e0;
+            border: 1px solid {{secondaryColor}};
             background-color: #fff;
         }
         .header {
@@ -25,23 +29,25 @@
             justify-content: space-between;
             align-items: flex-start;
             padding-bottom: 20px;
-            border-bottom: 2px solid #000;
+            border-bottom: 3px solid {{primaryColor}};
+            gap: 24px;
         }
         .header .owner-info {
             text-align: right;
         }
         .header .owner-info h1 {
             margin: 0;
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
+            color: {{primaryColor}};
         }
         .header .owner-info p {
             margin: 2px 0;
-            font-size: 14px;
+            font-size: 16px;
         }
         .owner-logo {
-            max-width: 120px;
-            max-height: 120px;
+            max-width: 150px;
+            max-height: 150px;
         }
         .proposal-details {
             display: flex;
@@ -54,43 +60,119 @@
         }
         .proposal-details h3 {
             margin-top: 0;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
-            border-bottom: 1px solid #e0e0e0;
+            color: {{primaryColor}};
+            border-bottom: 1px solid {{secondaryColor}};
             padding-bottom: 5px;
         }
         .proposal-details p {
             margin: 0 0 5px 0;
-            font-size: 14px;
+            font-size: 16px;
         }
         .services-table {
             width: 100%;
-            margin-top: 40px;
+            margin-top: 32px;
             border-collapse: collapse;
         }
         .services-table th,
         .services-table td {
-            border: 1px solid #e0e0e0;
+            border: 1px solid {{secondaryColor}};
             padding: 12px;
-            font-size: 14px;
+            font-size: 16px;
             text-align: left;
         }
         .services-table thead {
-            background-color: #f9f9f9;
+            background-color: {{secondaryColor}};
         }
         .services-table th {
             font-weight: bold;
+            color: {{primaryColor}};
         }
         .services-table .total-row td {
             font-weight: bold;
-            font-size: 16px;
+            font-size: 18px;
+            color: {{primaryColor}};
         }
-        .terms, .footer {
-            margin-top: 40px;
-            font-size: 12px;
+        .scope-of-work, .extra-details, .terms, .footer {
+            margin-top: 16px;
+            font-size: 14px;
         }
+        .scope-of-work h3,
+        .extra-details h3,
         .terms h3 {
-            font-size: 16px;
+            margin: 0 0 4px;
+            font-size: 17px;
+            color: {{primaryColor}};
+        }
+        .scope-of-work .section-content,
+        .extra-details .section-content,
+        .terms .section-content {
+            margin: 0;
+            white-space: normal;
+            line-height: 1.35;
+        }
+        .scope-block,
+        .detail-block {
+            margin-top: 6px;
+            border: 1px solid {{secondaryColor}};
+            border-radius: 8px;
+            padding: 6px 10px;
+            background: #ffffff;
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .scope-block:first-of-type,
+        .detail-block:first-of-type {
+            margin-top: 0;
+        }
+        .scope-block h4,
+        .detail-block h4 {
+            margin: 0 0 3px;
+            font-size: 14px;
+            font-weight: 700;
+            color: {{primaryColor}};
+        }
+        .scope-block ul,
+        .detail-block ul {
+            margin: 0;
+            padding-left: 14px;
+        }
+        .scope-block li,
+        .detail-block li {
+            margin: 0 0 2px;
+            line-height: 1.35;
+            font-size: 13px;
+            color: #374151;
+        }
+        .scope-block li:last-child,
+        .detail-block li:last-child {
+            margin-bottom: 0;
+        }
+        .scope-of-work,
+        .extra-details,
+        .terms {
+            break-inside: auto;
+            page-break-inside: auto;
+        }
+        .brand-meta {
+            margin-top: 12px;
+            padding: 14px 16px;
+            background-color: {{secondaryColor}};
+            border-left: 4px solid {{primaryColor}};
+            font-size: 14px;
+        }
+        .brand-meta strong {
+            display: block;
+            font-size: 17px;
+            color: {{primaryColor}};
+        }
+        .footer {
+            margin-top: 32px;
+            padding-top: 16px;
+            border-top: 1px solid {{secondaryColor}};
+            color: #4b5563;
+            font-size: 13px;
         }
         .text-right {
             text-align: right;
@@ -122,8 +204,13 @@
                 <h3>Proposal Details:</h3>
                 <p><strong>Title:</strong> {{proposalTitle}}</p>
                 <p><strong>Date Issued:</strong> {{proposalDate}}</p>
-                <p><strong>Valid Until:</strong> {{validUntil}}</p>
+                <p><strong>Project Completion:</strong> {{completionTime}}</p>
             </div>
+        </div>
+
+        <div class="brand-meta">
+            <strong>{{companyName}}</strong>
+            <span>{{companyAddress}}</span>
         </div>
 
         <table class="services-table">
@@ -143,6 +230,14 @@
                     <td colspan="3" class="text-right"><strong>Subtotal</strong></td>
                     <td class="text-right"><strong>{{subtotal}}</strong></td>
                 </tr>
+                <tr style="display: {{gstRowDisplay}};">
+                    <td colspan="3" class="text-right">GST ({{gstRate}}%)</td>
+                    <td class="text-right">{{gstAmount}}</td>
+                </tr>
+                <tr style="display: {{roundOffDisplay}};">
+                    <td colspan="3" class="text-right">Round Off</td>
+                    <td class="text-right">{{roundOffAmount}}</td>
+                </tr>
                 <tr class="total-row">
                     <td colspan="3" class="text-right">Total</td>
                     <td class="text-right">{{total}}</td>
@@ -150,13 +245,23 @@
             </tfoot>
         </table>
 
-        <div class="terms">
+        <div class="scope-of-work" style="display: {{scopeSectionDisplay}};">
+            <h3>Scope of Work</h3>
+            <div class="section-content">{{scopeOfWork}}</div>
+        </div>
+
+        <div class="extra-details" style="display: {{extraDetailsDisplay}};">
+            <h3>Additional Details</h3>
+            <div class="section-content">{{extraDetails}}</div>
+        </div>
+
+        <div class="terms" style="display: {{termsDisplay}};">
             <h3>Terms & Conditions</h3>
-            <p>{{terms}}</p>
+            <div class="section-content">{{terms}}</div>
         </div>
 
         <div class="footer">
-            <p>Thank you for the opportunity to work with you.</p>
+            <p>{{proposalFooter}}</p>
         </div>
     </div>
 </body>

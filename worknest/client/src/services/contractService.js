@@ -1,7 +1,8 @@
 // File: worknest/client/src/services/contractService.js
 
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { logActivity } from './activityService';
 
 const CONTRACTS_COLLECTION = 'contracts';
 
@@ -10,7 +11,7 @@ export const addContract = (userId, contractData) => {
   return addDoc(collection(db, CONTRACTS_COLLECTION), {
     userId,
     ...contractData,
-    status: 'Draft', // Default status
+    status: contractData.status || 'Draft',
     createdAt: new Date(),
   });
 };
@@ -26,4 +27,20 @@ export const getContractsForUser = async (userId) => {
   });
   
   return contracts;
+};
+
+export const updateContract = async (contractId, updatedData, userId) => {
+  const contractRef = doc(db, CONTRACTS_COLLECTION, contractId);
+  await updateDoc(contractRef, updatedData);
+  if (userId) {
+    await logActivity(userId, 'Contract Updated', `Contract "${updatedData.title || 'Untitled'}" was updated.`);
+  }
+};
+
+export const deleteContract = async (contractId, userId, title = 'Untitled') => {
+  const contractRef = doc(db, CONTRACTS_COLLECTION, contractId);
+  await deleteDoc(contractRef);
+  if (userId) {
+    await logActivity(userId, 'Contract Deleted', `Contract "${title}" was deleted.`);
+  }
 };

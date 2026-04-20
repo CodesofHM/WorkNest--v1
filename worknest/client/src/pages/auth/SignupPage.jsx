@@ -6,6 +6,7 @@ import { signup } from '../../services/authService';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
+import BrandLogo from '../../components/layout/BrandLogo';
 
 const SignupPage = () => {
   const [email, setEmail] = useState('');
@@ -36,8 +37,17 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-secondary font-sans">
-      <Card className="w-full max-w-sm">
+    <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.1),_transparent_30%),linear-gradient(180deg,_#f8fafc,_#eef2ff)] px-4 py-8 font-sans">
+      <div className="w-full max-w-sm space-y-4">
+        <div className="flex justify-center">
+          <BrandLogo
+            stacked
+            className="items-center text-center"
+            labelClassName="text-center"
+            imageClassName="h-16 rounded-3xl shadow-sm"
+          />
+        </div>
+        <Card className="w-full border-slate-200 bg-white/95 shadow-sm">
         <CardHeader>
           <CardTitle className="text-2xl">Create an Account</CardTitle>
           <CardDescription>Enter your details to get started with WorkNest.</CardDescription>
@@ -72,6 +82,12 @@ const SignupPage = () => {
               {loading ? 'Creating Account...' : 'Sign Up'}
             </Button>
             <p className="mt-4 text-center text-sm text-muted-foreground">
+              <Link to="/" className="mr-2 underline">
+                Back to Intro
+              </Link>
+              ·
+            </p>
+            <p className="mt-2 text-center text-sm text-muted-foreground">
               Already have an account?{' '}
               <Link to="/login" className="underline">
                 Log In
@@ -79,7 +95,8 @@ const SignupPage = () => {
             </p>
           </CardFooter>
         </form>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };

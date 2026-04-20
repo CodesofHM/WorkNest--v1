@@ -1,38 +1,76 @@
 // File: worknest/client/src/components/invoices/AddInvoiceForm.jsx
 import React, { useState } from 'react';
+import { Button } from '../ui/Button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/Card';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Textarea } from '../ui/Textarea';
 
-const AddInvoiceForm = ({ clients, onSave, onCancel }) => {
-  const [clientId, setClientId] = useState('');
-  const [total, setTotal] = useState(0);
-  const [dueDate, setDueDate] = useState('');
+const AddInvoiceForm = ({ clients, onSave, onCancel, initialData }) => {
+  const [clientId, setClientId] = useState(initialData?.clientId || '');
+  const [total, setTotal] = useState(initialData?.total || 0);
+  const [dueDate, setDueDate] = useState(initialData?.dueDate || '');
+  const [status, setStatus] = useState(initialData?.status || 'Pending');
+  const [notes, setNotes] = useState(initialData?.notes || '');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const client = clients.find(c => c.id === clientId);
-    onSave({ clientId, clientName: client.name, total: Number(total), dueDate });
+    onSave({
+      clientId,
+      clientName: client?.name || '',
+      total: Number(total),
+      dueDate,
+      status,
+      notes,
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h3 className="text-xl font-semibold mb-4">New Invoice</h3>
-      <div className="space-y-4">
-        <select value={clientId} onChange={(e) => setClientId(e.target.value)} className="w-full px-3 py-2 border rounded-lg" required>
-          <option value="" disabled>Select a Client</option>
-          {clients.map(client => (
-            <option key={client.id} value={client.id}>{client.name}</option>
-          ))}
-        </select>
-        <input type="number" placeholder="Total Amount ($)" value={total} onChange={(e) => setTotal(e.target.value)} className="w-full px-3 py-2 border rounded-lg" required />
-        <div>
-          <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">Due Date</label>
-          <input id="dueDate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="w-full px-3 py-2 border rounded-lg mt-1" required />
-        </div>
-      </div>
-      <div className="flex justify-end space-x-4 mt-6">
-        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 rounded-lg">Cancel</button>
-        <button type="submit" className="px-4 py-2 bg-yellow-500 text-white rounded-lg">Save Invoice</button>
-      </div>
-    </form>
+    <Card className="mx-auto w-full max-w-2xl">
+      <CardHeader>
+        <CardTitle>{initialData ? 'Edit Invoice' : 'New Invoice'}</CardTitle>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Client</label>
+            <Select value={clientId} onChange={(e) => setClientId(e.target.value)} required>
+              <option value="" disabled>Select a Client</option>
+              {clients.map(client => (
+                <option key={client.id} value={client.id}>{client.name}</option>
+              ))}
+            </Select>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Total Amount</label>
+              <Input type="number" placeholder="Total Amount" value={total} onChange={(e) => setTotal(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="dueDate" className="text-sm font-medium">Due Date</label>
+              <Input id="dueDate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Status</label>
+            <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="Pending">Pending</option>
+              <option value="Paid">Paid</option>
+              <option value="Overdue">Overdue</option>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Notes</label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional payment notes or invoice summary" rows={4} />
+          </div>
+        </CardContent>
+        <CardFooter className="justify-end space-x-4">
+          <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button type="submit">{initialData ? 'Update Invoice' : 'Save Invoice'}</Button>
+        </CardFooter>
+      </form>
+    </Card>
   );
 };
 
