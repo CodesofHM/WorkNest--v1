@@ -134,6 +134,10 @@ app.patch('/api/user/settings', verifyToken, async (req, res) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send("🚀 WorkNest Backend is Running Successfully!");
+});
+
 app.get('/api/integrations/whatsapp/status', verifyToken, async (req, res) => {
   try {
     const integrationDoc = await db.collection('userIntegrations').doc(req.user.uid).get();
