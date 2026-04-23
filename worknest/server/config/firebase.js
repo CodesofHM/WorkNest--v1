@@ -13,7 +13,6 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
-
-const { db } = require("./config/firebase");
+const db = admin.firestore();
 
 module.exports = { admin, db };
