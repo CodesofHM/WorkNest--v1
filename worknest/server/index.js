@@ -4,7 +4,7 @@ require('./config/firebase');
 const express = require('express');
 const allowedOrigins = [
   "http://localhost:5173", // local frontend (Vite)
-  "https://wondrous-paprenjak-6461d8.netlify.app/" // 🔥 replace with your real Netlify URL
+  "https://work-nest-v1.vercel.app"
 ];
 const cors = require('cors');
 const app = express();

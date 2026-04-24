@@ -131,6 +131,7 @@ const Dashboard = () => {
       } catch (error) {
         console.error('Error loading daily quote:', error);
       }
+      console.log("API CALL TRIGGERED");
     };
 
     loadDailyQuote();
