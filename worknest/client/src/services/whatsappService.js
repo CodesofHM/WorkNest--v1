@@ -1,7 +1,6 @@
 import { getAuth } from 'firebase/auth';
 
-const API_URL = 'http://localhost:5000';
-
+import.meta.env.VITE_API_URL
 const getAuthHeaders = async () => {
   const auth = getAuth();
   const user = auth.currentUser;
