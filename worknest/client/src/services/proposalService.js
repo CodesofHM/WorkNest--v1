@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { logActivity } from './activityService';
 
 const PROPOSALS_COLLECTION = 'proposals';
-const API_URL = 'http://localhost:5000'; // Ensure this matches your server URL
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const addProposal = async (userId, proposalData) => {
   const docRef = await addDoc(collection(db, PROPOSALS_COLLECTION), {

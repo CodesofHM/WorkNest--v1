@@ -2,7 +2,22 @@ require('dotenv').config();
 require('./config/firebase');
 
 const express = require('express');
+const allowedOrigins = [
+  "http://localhost:5173", // local frontend (Vite)
+  "https://wondrous-paprenjak-6461d8.netlify.app/" // 🔥 replace with your real Netlify URL
+];
 const cors = require('cors');
+const app = express();
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 const http = require('http');
 const path = require('path');
 const { db } = require('./config/firebase');
@@ -14,7 +29,7 @@ const { generateProposalPDF } = require('./services/pdfService');
 const { generateAssistantReply, generateAssistantPdfBuffer } = require('./services/aiService');
 const { sendDocumentMessage } = require('./services/whatsappService');
 
-const app = express();
+
 const server = http.createServer(app);
 const dashboardQuoteFallbacks = [
   {

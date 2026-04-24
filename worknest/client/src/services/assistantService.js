@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const runAIAssistant = async ({ task, prompt, tone = 'Polite' }) => {
   const response = await fetch(`${API_URL}/ai/assist`, {

@@ -1,6 +1,6 @@
 import { getAuth } from "firebase/auth";
 
-const API_URL = "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const uploadFile = async (file) => {
   const auth = getAuth();
