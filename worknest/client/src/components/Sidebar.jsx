@@ -3,10 +3,12 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { LayoutDashboard, Users, FileText, FileSignature, Receipt, LogOut, Settings, UserCircle } from 'lucide-react';
 import BrandLogo from './layout/BrandLogo';
+import { isGuestUser } from '../utils/guestMode';
 
 const Sidebar = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const isGuest = isGuestUser(currentUser);
 
   const handleLogout = async () => {
     try {
@@ -76,8 +78,8 @@ const Sidebar = () => {
               <UserCircle className="h-10 w-10 text-muted-foreground" />
             )}
             <div className="ml-3">
-              <p className="text-sm font-semibold text-slate-800">{currentUser?.displayName || 'User'}</p>
-              <p className="text-xs text-slate-500">View Profile</p>
+              <p className="text-sm font-semibold text-slate-800">{isGuest ? 'Guest Account' : currentUser?.displayName || 'User'}</p>
+              <p className="text-xs text-slate-500">{isGuest ? '' : 'View Profile'}</p>
             </div>
           </NavLink>
           <div className="flex gap-2">

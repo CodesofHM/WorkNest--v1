@@ -29,6 +29,7 @@ import SettingsPage from './pages/SettingsPage';
 
 function App() {
   const { currentUser } = useAuth();
+  const isSignedInAccount = currentUser && !currentUser.isAnonymous;
 
   return (
     <Router>
@@ -37,8 +38,8 @@ function App() {
         
         {/* --- Public Authentication Routes --- */}
         <Route path="/" element={currentUser ? <Navigate to="/dashboard" /> : <WelcomePage />} />
-        <Route path="/login" element={currentUser ? <Navigate to="/dashboard" /> : <LoginPage />} />
-        <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" /> : <SignupPage />} />
+        <Route path="/login" element={isSignedInAccount ? <Navigate to="/dashboard" /> : <LoginPage />} />
+        <Route path="/signup" element={isSignedInAccount ? <Navigate to="/dashboard" /> : <SignupPage />} />
 
         {/* --- Protected Application Routes --- */}
         <Route path="/dashboard" element={<ProtectedRoute><MainLayout><Dashboard /></MainLayout></ProtectedRoute>} />
@@ -67,4 +68,3 @@ function App() {
 console.log(import.meta.env.VITE_API_URL);
 
 export default App;
-

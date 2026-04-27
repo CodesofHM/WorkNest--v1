@@ -12,6 +12,8 @@ import { PlusCircle, FileText, CheckCircle2, PencilRuler } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import toast from 'react-hot-toast';
 import PageHero from '../components/layout/PageHero';
+import { GUEST_LIMITS, isGuestUser } from '../utils/guestMode';
+import GuestLimitModal from '../components/GuestLimitModal';
 
 const ProposalsPage = () => {
   const { currentUser } = useAuth();
@@ -21,6 +23,7 @@ const ProposalsPage = () => {
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProposal, setEditingProposal] = useState(null);
+  const [guestLimitModalOpen, setGuestLimitModalOpen] = useState(false);
 
   const fetchData = async () => {
     if (!currentUser) return;
@@ -66,6 +69,11 @@ const ProposalsPage = () => {
           }
         }
       } else {
+        if (isGuestUser(currentUser) && proposals.length >= GUEST_LIMITS.proposals) {
+          toast.dismiss(toastId);
+          setGuestLimitModalOpen(true);
+          return;
+        }
         const selectedClient = clients.find((client) => client.id === proposalData.clientId);
         const docRef = await addProposal(currentUser.uid, {
           ...proposalData,
@@ -183,6 +191,15 @@ const ProposalsPage = () => {
   const draftCount = proposals.filter((proposal) => proposal.status === 'Draft').length;
   const readyCount = proposals.filter((proposal) => proposal.status === 'Ready' || proposal.status === 'Pending').length;
   const acceptedCount = proposals.filter((proposal) => proposal.status === 'Accepted').length;
+  const openCreateProposalForm = () => {
+    if (isGuestUser(currentUser) && proposals.length >= GUEST_LIMITS.proposals) {
+      setGuestLimitModalOpen(true);
+      return;
+    }
+
+    setEditingProposal(null);
+    setIsFormOpen(true);
+  };
 
   if (isFormOpen) {
     return (
@@ -198,16 +215,21 @@ const ProposalsPage = () => {
 
   return (
     <div className="space-y-6">
+      <GuestLimitModal
+        isOpen={guestLimitModalOpen}
+        resourceName="proposal"
+        onClose={() => setGuestLimitModalOpen(false)}
+      />
       <PageHero
         themeClassName="bg-[linear-gradient(135deg,#0f172a_0%,#111827_45%,#2563eb_100%)]"
         badgeText="Proposal Studio"
         title="Create polished proposals faster and move client work from draft to approval smoothly."
         description="Apply saved pricing templates, review status at a glance, and generate PDF output from one focused workspace."
         helperLabel="Quick start"
-        helperText="Open a new proposal when you want to send pricing, scope, and PDF-ready terms to a client."
+        helperText={isGuestUser(currentUser) ? 'Guest mode includes one proposal.' : 'Open a new proposal when you want to send pricing, scope, and PDF-ready terms to a client.'}
         actionLabel="Create Proposal"
         actionIcon={PlusCircle}
-        onAction={() => { setEditingProposal(null); setIsFormOpen(true); }}
+        onAction={openCreateProposalForm}
       />
 
       <div className="grid gap-4 md:grid-cols-3">

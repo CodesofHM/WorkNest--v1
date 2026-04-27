@@ -10,6 +10,8 @@ import { Select } from '../components/ui/Select'; // Import the new Select compo
 import { PlusCircle, Search, Users, UserCheck, UserX } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import PageHero from '../components/layout/PageHero';
+import { GUEST_LIMITS, isGuestUser } from '../utils/guestMode';
+import GuestLimitModal from '../components/GuestLimitModal';
 
 const ClientsPage = () => {
   const { currentUser } = useAuth();
@@ -20,6 +22,7 @@ const ClientsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
+  const [guestLimitModalOpen, setGuestLimitModalOpen] = useState(false);
 
   const fetchClients = async () => {
     if (currentUser) {
@@ -46,6 +49,10 @@ const ClientsPage = () => {
         await updateClient(editingClient.id, clientData);
         toast.success("Client updated successfully!");
       } else {
+        if (isGuestUser(currentUser) && clients.length >= GUEST_LIMITS.clients) {
+          setGuestLimitModalOpen(true);
+          return;
+        }
         await addClient(currentUser.uid, clientData);
         toast.success("Client added successfully!");
       }
@@ -117,6 +124,15 @@ const ClientsPage = () => {
 
   const activeClients = clients.filter((client) => client.status === 'Active').length;
   const inactiveClients = clients.filter((client) => client.status === 'Inactive').length;
+  const openCreateClientForm = () => {
+    if (isGuestUser(currentUser) && clients.length >= GUEST_LIMITS.clients) {
+      setGuestLimitModalOpen(true);
+      return;
+    }
+
+    setEditingClient(null);
+    setIsFormVisible(true);
+  };
 
   if (isFormVisible) {
     return (
@@ -130,16 +146,21 @@ const ClientsPage = () => {
 
   return (
     <div className="space-y-6">
+      <GuestLimitModal
+        isOpen={guestLimitModalOpen}
+        resourceName="client"
+        onClose={() => setGuestLimitModalOpen(false)}
+      />
       <PageHero
         themeClassName="bg-[linear-gradient(135deg,#020617_0%,#0f172a_45%,#1d4ed8_100%)]"
         badgeText="Client Hub"
         title="Keep every client relationship in one clean, easy-to-scan workspace."
         description="Track who is active, filter your pipeline quickly, and keep contact details ready for proposals, contracts, and invoices."
         helperLabel="Quick start"
-        helperText="Add a new client, then use search and filters to keep your directory tidy."
+        helperText={isGuestUser(currentUser) ? 'Guest mode includes one client record.' : 'Add a new client, then use search and filters to keep your directory tidy.'}
         actionLabel="Add Client"
         actionIcon={PlusCircle}
-        onAction={() => { setEditingClient(null); setIsFormVisible(true); }}
+        onAction={openCreateClientForm}
       />
 
       <div className="grid gap-4 md:grid-cols-3">

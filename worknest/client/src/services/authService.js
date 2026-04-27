@@ -2,6 +2,9 @@
 
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
+  linkWithCredential,
+  signInAnonymously,
   signInWithEmailAndPassword,
   signOut,
   updateProfile, // Import updateProfile
@@ -14,9 +17,22 @@ export const signup = (email, password) => {
   return createUserWithEmailAndPassword(auth, email, password);
 };
 
+export const convertGuestToAccount = (email, password) => {
+  if (!auth.currentUser?.isAnonymous) {
+    return signup(email, password);
+  }
+
+  const credential = EmailAuthProvider.credential(email, password);
+  return linkWithCredential(auth.currentUser, credential);
+};
+
 // Log In Function
 export const login = (email, password) => {
   return signInWithEmailAndPassword(auth, email, password);
+};
+
+export const loginAsGuest = () => {
+  return signInAnonymously(auth);
 };
 
 // Log Out Function

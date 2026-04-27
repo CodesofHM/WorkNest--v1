@@ -1,12 +1,13 @@
 // File: worknest/client/src/pages/auth/LoginPage.jsx
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { login } from '../../services/authService';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { login, loginAsGuest } from '../../services/authService';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import BrandLogo from '../../components/layout/BrandLogo';
+import { useAuth } from '../../hooks/useAuth';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -14,6 +15,9 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromGuestLimit = Boolean(location.state?.fromGuestLimit);
+  const { currentUser } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -31,6 +35,25 @@ const LoginPage = () => {
       navigate('/dashboard');
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!currentUser?.isAnonymous) {
+        await loginAsGuest();
+      }
+      navigate('/dashboard');
+    } catch (err) {
+      const isProviderDisabled = err?.code === 'auth/operation-not-allowed';
+      setError(isProviderDisabled
+        ? 'Guest login is not enabled in Firebase yet. Enable Anonymous sign-in in Firebase Authentication.'
+        : err.message);
     } finally {
       setLoading(false);
     }
@@ -81,6 +104,21 @@ const LoginPage = () => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Logging In...' : 'Log In'}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 w-full"
+              disabled={loading}
+              onClick={handleGuestLogin}
+            >
+              {fromGuestLimit ? 'Back to Guest Mode' : 'Continue as Guest'}
+            </Button>
+            {fromGuestLimit ? (
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                You can return to guest mode, but the guest limits will still apply.
+              </p>
+            ) : null}
+          
             <p className="mt-4 text-center text-sm text-muted-foreground">
               <Link to="/" className="mr-2 underline">
                 Back to Intro

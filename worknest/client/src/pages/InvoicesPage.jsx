@@ -13,6 +13,8 @@ import { Textarea } from '../components/ui/Textarea';
 import { PlusCircle, ReceiptText, Clock3, BadgeCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import PageHero from '../components/layout/PageHero';
+import { GUEST_LIMITS, isGuestUser } from '../utils/guestMode';
+import GuestLimitModal from '../components/GuestLimitModal';
 
 const InvoicesPage = () => {
   const { currentUser } = useAuth();
@@ -26,6 +28,7 @@ const InvoicesPage = () => {
   const [messageType, setMessageType] = useState('reminder');
   const [messageText, setMessageText] = useState('');
   const [messageHistory, setMessageHistory] = useState([]);
+  const [guestLimitModalOpen, setGuestLimitModalOpen] = useState(false);
 
   const fetchData = async () => {
     if (currentUser) {
@@ -55,6 +58,10 @@ const InvoicesPage = () => {
         await updateInvoice(editingInvoice.id, invoiceData, currentUser.uid);
         toast.success('Invoice updated successfully!');
       } else {
+        if (isGuestUser(currentUser) && invoices.length >= GUEST_LIMITS.invoices) {
+          setGuestLimitModalOpen(true);
+          return;
+        }
         await addInvoice(currentUser.uid, invoiceData);
         toast.success('Invoice created successfully!');
       }
@@ -154,6 +161,15 @@ const InvoicesPage = () => {
   const outstandingAmount = invoices
     .filter((invoice) => invoice.status !== 'Paid')
     .reduce((sum, invoice) => sum + Number(invoice.total || 0), 0);
+  const openCreateInvoiceForm = () => {
+    if (isGuestUser(currentUser) && invoices.length >= GUEST_LIMITS.invoices) {
+      setGuestLimitModalOpen(true);
+      return;
+    }
+
+    setEditingInvoice(null);
+    setIsFormVisible(true);
+  };
 
   if (isFormVisible) {
     return (
@@ -168,16 +184,21 @@ const InvoicesPage = () => {
 
   return (
     <div className="space-y-6">
+      <GuestLimitModal
+        isOpen={guestLimitModalOpen}
+        resourceName="invoice"
+        onClose={() => setGuestLimitModalOpen(false)}
+      />
       <PageHero
         themeClassName="bg-[linear-gradient(135deg,#172554_0%,#1e293b_38%,#c2410c_100%)]"
         badgeText="Billing Flow"
         title="Manage billing, follow-ups, and overdue payments from one calmer invoice desk."
         description="Create invoices, update payment status quickly, and prepare reminder messages without jumping between tools."
         helperLabel="Outstanding value"
-        helperText={`Rs. ${outstandingAmount.toFixed(2)} across all pending and overdue invoices in your workspace right now.`}
+        helperText={isGuestUser(currentUser) ? 'Guest mode includes one invoice.' : `Rs. ${outstandingAmount.toFixed(2)} across all pending and overdue invoices in your workspace right now.`}
         actionLabel="New Invoice"
         actionIcon={PlusCircle}
-        onAction={() => { setEditingInvoice(null); setIsFormVisible(true); }}
+        onAction={openCreateInvoiceForm}
       />
 
       <div className="grid gap-4 md:grid-cols-3">

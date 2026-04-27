@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Bot, Copy, Download, FileText, HelpCircle, MessageSquareText, SendHorizonal, Sparkles, Wand2, X } from 'lucide-react';
 import { runAIAssistant, generateAIAssistantPdf } from '../../services/assistantService';
+import { useAuth } from '../../hooks/useAuth';
+import { isGuestUser } from '../../utils/guestMode';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
+import GuestLimitModal from '../GuestLimitModal';
 
 const placeholders = {
   proposal: 'Draft a website redesign proposal for a salon client with a 4-week timeline and staged payment terms.',
@@ -96,6 +99,8 @@ const getSuggestedLinks = (text) => {
 
 const FloatingAIChatWidget = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const isGuest = isGuestUser(currentUser);
   const [isOpen, setIsOpen] = useState(false);
   const [assistantMode, setAssistantMode] = useState('fast');
   const [task, setTask] = useState('proposal');
@@ -108,6 +113,7 @@ const FloatingAIChatWidget = () => {
   const [pdfUrl, setPdfUrl] = useState('');
   const [provider, setProvider] = useState('');
   const [loading, setLoading] = useState(false);
+  const [guestLimitModalOpen, setGuestLimitModalOpen] = useState(false);
 
   const downloadFileName = useMemo(() => `worknest-ai-${task}.pdf`, [task]);
 
@@ -156,6 +162,11 @@ const FloatingAIChatWidget = () => {
   };
 
   const handleOutputModeChange = (nextMode) => {
+    if (isGuest && nextMode === 'pdf') {
+      setGuestLimitModalOpen(true);
+      return;
+    }
+
     setOutputMode(nextMode);
     setOutput('');
     setProvider('');
@@ -237,6 +248,10 @@ const FloatingAIChatWidget = () => {
       resetPdfUrl();
 
       if (outputMode === 'pdf') {
+        if (isGuest) {
+          setGuestLimitModalOpen(true);
+          return;
+        }
         const pdfBlob = await generateAIAssistantPdf({ task, tone, prompt });
         const nextPdfUrl = URL.createObjectURL(pdfBlob);
         setPdfUrl(nextPdfUrl);
@@ -281,6 +296,11 @@ const FloatingAIChatWidget = () => {
 
   return (
     <>
+      <GuestLimitModal
+        isOpen={guestLimitModalOpen}
+        resourceName="AI PDF export"
+        onClose={() => setGuestLimitModalOpen(false)}
+      />
       {isOpen ? (
         <div className="fixed inset-0 z-40 bg-black/20 md:bg-transparent" onClick={() => setIsOpen(false)} role="presentation" />
       ) : null}
@@ -365,8 +385,11 @@ const FloatingAIChatWidget = () => {
                       <label className="text-sm font-medium text-slate-700">Output</label>
                       <Select value={outputMode} onChange={(event) => handleOutputModeChange(event.target.value)}>
                         <option value="content">Direct Content</option>
-                        <option value="pdf">PDF File</option>
+                        {!isGuest ? <option value="pdf">PDF File</option> : null}
                       </Select>
+                      {isGuest ? (
+                        <p className="mt-1 text-xs text-slate-500">Guest AI supports direct content only.</p>
+                      ) : null}
                     </div>
                   </div>
 

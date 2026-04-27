@@ -1,9 +1,11 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, FileSignature, FileText, Receipt, Sparkles, Users, Clock3, Wand2, Layers3 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import BrandLogo from '../components/layout/BrandLogo';
+import { loginAsGuest } from '../services/authService';
+import toast from 'react-hot-toast';
 
 const featureCards = [
   {
@@ -61,6 +63,24 @@ const quickGuide = [
 ];
 
 const WelcomePage = () => {
+  const navigate = useNavigate();
+  const [guestLoading, setGuestLoading] = useState(false);
+
+  const handleGuestLogin = async () => {
+    try {
+      setGuestLoading(true);
+      await loginAsGuest();
+      navigate('/dashboard');
+    } catch (error) {
+      const isProviderDisabled = error?.code === 'auth/operation-not-allowed';
+      toast.error(isProviderDisabled
+        ? 'Guest login is not enabled in Firebase yet. Enable Anonymous sign-in in Firebase Authentication.'
+        : error.message || 'Unable to start guest mode.');
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.12),_transparent_30%),linear-gradient(180deg,_#f8fafc,_#eef2ff)] text-slate-900">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
@@ -70,6 +90,15 @@ const WelcomePage = () => {
             <Link to="/login">
               <Button variant="outline" className="w-full sm:w-auto">Log In</Button>
             </Link>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={handleGuestLogin}
+              disabled={guestLoading}
+            >
+              {guestLoading ? 'Starting...' : 'Try Guest'}
+            </Button>
             <Link to="/signup">
               <Button className="w-full sm:w-auto">
                 Get Started
@@ -113,6 +142,15 @@ const WelcomePage = () => {
                     I Already Have an Account
                   </Button>
                 </Link>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                  onClick={handleGuestLogin}
+                  disabled={guestLoading}
+                >
+                  {guestLoading ? 'Starting Guest...' : 'Try Guest Mode'}
+                </Button>
               </div>
             </div>
 
