@@ -61,9 +61,10 @@ function App() {
         
         {/* --- Default Redirect Route --- */}
         <Route path="*" element={<Navigate to={currentUser ? "/dashboard" : "/"} />} />
-          <Analytics />
 
       </Routes>
+                <Analytics />
+
     </Router>
   );
 }
