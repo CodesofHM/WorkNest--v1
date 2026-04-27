@@ -27,6 +27,8 @@ import MyAccountPage from './pages/MyAccountPage';
 
 import SettingsPage from './pages/SettingsPage';
 
+import { Analytics } from "@vercel/analytics/react";
+
 function App() {
   const { currentUser } = useAuth();
   const isSignedInAccount = currentUser && !currentUser.isAnonymous;
@@ -59,6 +61,7 @@ function App() {
         
         {/* --- Default Redirect Route --- */}
         <Route path="*" element={<Navigate to={currentUser ? "/dashboard" : "/"} />} />
+          <Analytics />
 
       </Routes>
     </Router>

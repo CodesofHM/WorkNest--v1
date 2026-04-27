@@ -4,7 +4,9 @@ import toast from 'react-hot-toast';
 import { Bot, Copy, Download, FileText, HelpCircle, MessageSquareText, SendHorizonal, Sparkles, Wand2, X } from 'lucide-react';
 import { runAIAssistant, generateAIAssistantPdf } from '../../services/assistantService';
 import { useAuth } from '../../hooks/useAuth';
-import { isGuestUser } from '../../utils/guestMode';
+import { addClient, getClientsForUser } from '../../services/clientService';
+import { addInvoice, getInvoicesForUser } from '../../services/invoiceService';
+import { GUEST_LIMITS, isGuestUser } from '../../utils/guestMode';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
@@ -61,7 +63,7 @@ const fastPresets = [
 const manualWelcomeMessage = {
   id: 'manual-welcome',
   role: 'assistant',
-  text: "Hi, I'm WORKNEST's AI. Ask me anything about this app and I will guide you step by step.",
+  text: "Hi, I'm WORKNEST's AI. Ask me anything, or tell me to do simple work like: make one client named Harshit, or make one invoice of the client named Harshit of Rs 2500 for web. Type @ to pick an existing client.",
   links: [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Proposals', path: '/proposals' },
@@ -97,6 +99,52 @@ const getSuggestedLinks = (text) => {
   return matches.slice(0, 4).map(({ label, path }) => ({ label, path }));
 };
 
+const addDays = (date, days) => {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate.toISOString().slice(0, 10);
+};
+
+const cleanName = (value) => String(value || '')
+  .replace(/^named\s+/i, '')
+  .replace(/^(the\s+)?client\s+/i, '')
+  .replace(/[.,!?]+$/g, '')
+  .trim();
+
+const parseClientCommand = (text) => {
+  const match = text.match(/\b(?:make|create|add)\s+(?:one\s+|a\s+)?client\s+(?:named\s+|name\s+)?([a-z][a-z0-9 .'-]*?)(?=\s+(?:with|for|of|and)\b|$)/i);
+  if (!match) return null;
+
+  const name = cleanName(match[1]);
+  return name ? { type: 'create-client', name } : null;
+};
+
+const parseInvoiceCommand = (text) => {
+  if (!/\b(?:make|create|add)\s+(?:one\s+|an?\s+)?invoice\b/i.test(text)) return null;
+
+  const amountMatch = text.match(/(?:rs\.?|inr|₹)\s*([\d,]+(?:\.\d+)?)/i);
+  const amount = amountMatch ? Number(amountMatch[1].replace(/,/g, '')) : 0;
+
+  const clientMatch = text.match(/(?:client\s+(?:named\s+)?|for\s+client\s+|for\s+)(@?[a-z][a-z0-9 .'-]*?)(?=\s+(?:of|for|with|rs\.?|inr|₹|\d)\b|$)/i);
+  const clientName = cleanName(clientMatch?.[1]?.replace(/^@/, ''));
+
+  const amountEndIndex = amountMatch ? amountMatch.index + amountMatch[0].length : -1;
+  const serviceFromAfterAmount = amountEndIndex >= 0
+    ? text.slice(amountEndIndex).match(/\bfor\s+(.+?)(?=$|[.!?])/i)?.[1]
+    : '';
+  const serviceFromGeneral = text.match(/\bfor\s+(.+?)(?=\s+(?:of\s+)?(?:rs\.?|inr|₹)\b|$)/i)?.[1];
+  const service = cleanName(serviceFromAfterAmount || serviceFromGeneral || 'Service work');
+
+  if (!clientName || !amount) return null;
+
+  return {
+    type: 'create-invoice',
+    clientName,
+    amount,
+    service,
+  };
+};
+
 const FloatingAIChatWidget = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -114,8 +162,29 @@ const FloatingAIChatWidget = () => {
   const [provider, setProvider] = useState('');
   const [loading, setLoading] = useState(false);
   const [guestLimitModalOpen, setGuestLimitModalOpen] = useState(false);
+  const [clients, setClients] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [clientMentionOpen, setClientMentionOpen] = useState(false);
 
   const downloadFileName = useMemo(() => `worknest-ai-${task}.pdf`, [task]);
+
+  const refreshWorkspaceData = async () => {
+    if (!currentUser) return;
+
+    const [nextClients, nextInvoices] = await Promise.all([
+      getClientsForUser(currentUser.uid),
+      getInvoicesForUser(currentUser.uid),
+    ]);
+
+    setClients(nextClients);
+    setInvoices(nextInvoices);
+  };
+
+  useEffect(() => {
+    refreshWorkspaceData().catch((error) => {
+      console.error('Failed to load AI workspace context:', error);
+    });
+  }, [currentUser]);
 
   useEffect(() => {
     return () => {
@@ -187,6 +256,138 @@ const FloatingAIChatWidget = () => {
     setIsOpen(false);
   };
 
+  const appendClientMention = (clientName) => {
+    const nextPrompt = manualPrompt.replace(/@\S*$/, `@${clientName} `);
+    setManualPrompt(nextPrompt);
+    setClientMentionOpen(false);
+  };
+
+  const createInvoicePdfSummary = async ({ clientName, amount, service }) => {
+    if (isGuest) return null;
+
+    const pdfBlob = await generateAIAssistantPdf({
+      task: 'invoice',
+      tone: 'Polite',
+      prompt: `Create a clean invoice PDF summary for client ${clientName}. Service: ${service}. Amount: Rs. ${amount.toFixed(2)}. Include payment status as Pending and a short professional payment note.`,
+    });
+
+    const nextPdfUrl = URL.createObjectURL(pdfBlob);
+    setPdfUrl(nextPdfUrl);
+    return nextPdfUrl;
+  };
+
+  const handleDirectAction = async (query) => {
+    if (!currentUser) return false;
+
+    const invoiceCommand = parseInvoiceCommand(query);
+    if (invoiceCommand) {
+      if (isGuest && invoices.length >= GUEST_LIMITS.invoices) {
+        setGuestLimitModalOpen(true);
+        return true;
+      }
+
+      let matchedClient = clients.find((client) =>
+        client.name?.toLowerCase() === invoiceCommand.clientName.toLowerCase()
+      );
+      let createdClient = false;
+
+      if (!matchedClient) {
+        if (isGuest && clients.length >= GUEST_LIMITS.clients) {
+          setGuestLimitModalOpen(true);
+          return true;
+        }
+
+        const clientRef = await addClient(currentUser.uid, {
+          name: invoiceCommand.clientName,
+          company: invoiceCommand.clientName,
+          email: '',
+          phone: '',
+          status: 'Active',
+        });
+
+        matchedClient = {
+          id: clientRef.id,
+          name: invoiceCommand.clientName,
+          company: invoiceCommand.clientName,
+        };
+        createdClient = true;
+      }
+
+      const invoiceRef = await addInvoice(currentUser.uid, {
+        clientId: matchedClient.id,
+        clientName: matchedClient.name,
+        total: invoiceCommand.amount,
+        dueDate: addDays(new Date(), 7),
+        status: 'Pending',
+        notes: invoiceCommand.service,
+      });
+
+      await refreshWorkspaceData();
+
+      let pdfReady = false;
+      try {
+        pdfReady = Boolean(await createInvoicePdfSummary(invoiceCommand));
+      } catch (error) {
+        console.warn('Invoice PDF summary generation failed:', error);
+      }
+
+      setMessages((current) => [...current, {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        text: `${createdClient ? `Created client ${matchedClient.name}. ` : ''}Created invoice for ${matchedClient.name} of Rs. ${invoiceCommand.amount.toFixed(2)} for ${invoiceCommand.service}.${pdfReady ? ' I also prepared a PDF summary you can preview or download.' : ''}`,
+        links: [
+          { label: 'Invoices', path: '/invoices' },
+          { label: 'Clients', path: '/clients' },
+        ],
+      }]);
+
+      toast.success(`Invoice created for ${matchedClient.name}.`);
+      return true;
+    }
+
+    const clientCommand = parseClientCommand(query);
+    if (clientCommand) {
+      if (isGuest && clients.length >= GUEST_LIMITS.clients) {
+        setGuestLimitModalOpen(true);
+        return true;
+      }
+
+      const existingClient = clients.find((client) =>
+        client.name?.toLowerCase() === clientCommand.name.toLowerCase()
+      );
+
+      if (existingClient) {
+        setMessages((current) => [...current, {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          text: `${existingClient.name} already exists in your client list.`,
+          links: [{ label: 'Clients', path: '/clients' }],
+        }]);
+        return true;
+      }
+
+      await addClient(currentUser.uid, {
+        name: clientCommand.name,
+        company: clientCommand.name,
+        email: '',
+        phone: '',
+        status: 'Active',
+      });
+
+      await refreshWorkspaceData();
+      setMessages((current) => [...current, {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        text: `Created client ${clientCommand.name}.`,
+        links: [{ label: 'Clients', path: '/clients' }],
+      }]);
+      toast.success(`Client ${clientCommand.name} created.`);
+      return true;
+    }
+
+    return false;
+  };
+
   const handleManualSend = async () => {
     if (!manualPrompt.trim()) {
       toast.error('Please type your question first.');
@@ -201,9 +402,13 @@ const FloatingAIChatWidget = () => {
 
     setMessages((current) => [...current, userMessage]);
     setManualPrompt('');
+    resetPdfUrl();
 
     try {
       setLoading(true);
+      const handledDirectly = await handleDirectAction(userMessage.text);
+      if (handledDirectly) return;
+
       const result = await runAIAssistant({
         task: 'general',
         tone: 'Polite',
@@ -233,6 +438,12 @@ const FloatingAIChatWidget = () => {
       event.preventDefault();
       await handleManualSend();
     }
+  };
+
+  const handleManualPromptChange = (event) => {
+    const nextValue = event.target.value;
+    setManualPrompt(nextValue);
+    setClientMentionOpen(/@\w*$/i.test(nextValue));
   };
 
   const handleGenerate = async () => {
@@ -460,12 +671,26 @@ const FloatingAIChatWidget = () => {
                     </div>
 
                     <div className="rounded-3xl border border-slate-200 bg-white p-2 shadow-sm">
+                      {clientMentionOpen && clients.length > 0 ? (
+                        <div className="mb-2 flex max-h-32 flex-wrap gap-2 overflow-y-auto rounded-2xl bg-slate-50 p-2">
+                          {clients.slice(0, 6).map((client) => (
+                            <button
+                              key={client.id}
+                              type="button"
+                              onClick={() => appendClientMention(client.name)}
+                              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700"
+                            >
+                              @{client.name}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                       <div className="flex items-end gap-2">
                         <Input
                           value={manualPrompt}
-                          onChange={(event) => setManualPrompt(event.target.value)}
+                          onChange={handleManualPromptChange}
                           onKeyDown={handleManualInputKeyDown}
-                          placeholder="Ask WORKNEST's AI anything..."
+                          placeholder="Ask WORKNEST's AI anything, or type @ to select a client..."
                           className="h-12 border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
                         />
                         <Button
@@ -479,6 +704,18 @@ const FloatingAIChatWidget = () => {
                         </Button>
                       </div>
                     </div>
+                    {pdfUrl ? (
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={handlePreviewPdf}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          Preview PDF
+                        </Button>
+                        <Button variant="outline" onClick={handleDownloadPdf}>
+                          <Download className="mr-2 h-4 w-4" />
+                          Download PDF
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 </>
               )}
