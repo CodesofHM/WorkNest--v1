@@ -28,6 +28,7 @@ import MyAccountPage from './pages/MyAccountPage';
 import SettingsPage from './pages/SettingsPage';
 
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 function App() {
   const { currentUser } = useAuth();
@@ -64,6 +65,7 @@ function App() {
 
       </Routes>
                 <Analytics />
+                <SpeedInsights/>
 
     </Router>
   );
