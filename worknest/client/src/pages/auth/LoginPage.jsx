@@ -2,7 +2,15 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { login, loginAsGuest } from '../../services/authService';
+import {
+  completeMfaLogin,
+  createRecaptchaVerifier,
+  getMfaResolver,
+  login,
+  loginAsGuest,
+  resetPassword,
+  sendMfaLoginCode,
+} from '../../services/authService';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
@@ -14,6 +22,9 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mfaResolver, setMfaResolver] = useState(null);
+  const [mfaVerificationId, setMfaVerificationId] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
   const fromGuestLimit = Boolean(location.state?.fromGuestLimit);
@@ -34,7 +45,66 @@ const LoginPage = () => {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
+      if (err?.code === 'auth/multi-factor-auth-required') {
+        try {
+          const resolver = getMfaResolver(err);
+          const verifier = createRecaptchaVerifier('login-recaptcha-container');
+          const verificationId = await sendMfaLoginCode({
+            resolver,
+            hint: resolver.hints[0],
+            recaptchaVerifier: verifier,
+          });
+          setMfaResolver(resolver);
+          setMfaVerificationId(verificationId);
+          setError('');
+        } catch (mfaError) {
+          setError(mfaError.message || 'Could not start two-factor verification.');
+        }
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyMfa = async () => {
+    if (!mfaResolver || !mfaVerificationId || !mfaCode.trim()) {
+      setError('Please enter the verification code.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await completeMfaLogin({
+        resolver: mfaResolver,
+        verificationId: mfaVerificationId,
+        code: mfaCode.trim(),
+      });
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Invalid two-factor verification code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Enter your email first, then click Forgot Password.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      await resetPassword(email);
+      setError('Password reset email sent. Check your inbox.');
+    } catch (err) {
+      setError(err.message || 'Could not send password reset email.');
     } finally {
       setLoading(false);
     }
@@ -77,6 +147,7 @@ const LoginPage = () => {
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="grid gap-4">
+            <div id="login-recaptcha-container" />
             <div className="grid gap-2">
               <label htmlFor="email" className="text-sm font-medium">Email</label>
               <Input
@@ -89,7 +160,17 @@ const LoginPage = () => {
               />
             </div>
             <div className="grid gap-2">
-              <label htmlFor="password"  className="text-sm font-medium">Password</label>
+              <div className="flex items-center justify-between gap-3">
+                <label htmlFor="password"  className="text-sm font-medium">Password</label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs font-medium text-sky-700 hover:underline"
+                  disabled={loading}
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -98,7 +179,22 @@ const LoginPage = () => {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {mfaResolver ? (
+              <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <label htmlFor="mfaCode" className="text-sm font-medium">Two-Factor Code</label>
+                <Input
+                  id="mfaCode"
+                  inputMode="numeric"
+                  placeholder="Enter SMS code"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value)}
+                />
+                <Button type="button" onClick={handleVerifyMfa} disabled={loading}>
+                  Verify Code
+                </Button>
+              </div>
+            ) : null}
+            {error && <p className={`text-sm ${error.includes('sent') ? 'text-emerald-600' : 'text-destructive'}`}>{error}</p>}
           </CardContent>
           <CardFooter className="flex flex-col">
             <Button type="submit" className="w-full" disabled={loading}>

@@ -4,6 +4,14 @@ import { useAuth } from '../hooks/useAuth';
 import { getUserProfileMeta, saveUserProfileMeta } from '../services/userService';
 import { updateProfile } from 'firebase/auth';
 import { auth } from '../services/firebase';
+import {
+  changeUserPassword,
+  completePhoneMfaEnrollment,
+  createRecaptchaVerifier,
+  getEnrolledFactors,
+  reauthenticateUser,
+  sendPhoneMfaEnrollmentCode,
+} from '../services/authService';
 import toast from 'react-hot-toast';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -23,6 +31,14 @@ const MyAccountPage = () => {
   const [photoURL, setPhotoURL] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [mfaPhone, setMfaPhone] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaVerificationId, setMfaVerificationId] = useState('');
+  const [enrolledFactors, setEnrolledFactors] = useState([]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -31,6 +47,7 @@ const MyAccountPage = () => {
       setDisplayName(currentUser.displayName || '');
       setEmail(currentUser.email || '');
       setPhotoURL(currentUser.photoURL || '');
+      setEnrolledFactors(currentUser.isAnonymous ? [] : getEnrolledFactors(currentUser));
 
       try {
         const profileMeta = await getUserProfileMeta(currentUser.uid);
@@ -112,6 +129,107 @@ const MyAccountPage = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!currentUser || currentUser.isAnonymous) {
+      toast.error('Guest accounts need to sign up before changing password.');
+      return;
+    }
+
+    if (!currentPassword) {
+      toast.error('Enter your current password before changing to a new password.');
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match.');
+      return;
+    }
+
+    setSecurityLoading(true);
+    const toastId = toast.loading('Updating password...');
+
+    try {
+      await reauthenticateUser(auth.currentUser, currentUser.email, currentPassword);
+      await changeUserPassword(auth.currentUser, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      toast.success('Password changed successfully.', { id: toastId });
+    } catch (error) {
+      const needsRecentLogin = error?.code === 'auth/requires-recent-login';
+      toast.error(needsRecentLogin
+        ? 'Please log out and sign in again, then change your password.'
+        : error.message || 'Could not change password.', { id: toastId });
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
+  const handleSendMfaCode = async () => {
+    if (!currentUser || currentUser.isAnonymous) {
+      toast.error('Guest accounts need to sign up before enabling two-factor authentication.');
+      return;
+    }
+
+    if (!mfaPhone.trim()) {
+      toast.error('Enter a phone number with country code, for example +919876543210.');
+      return;
+    }
+
+    setSecurityLoading(true);
+    const toastId = toast.loading('Sending two-factor code...');
+
+    try {
+      const verifier = createRecaptchaVerifier('account-mfa-recaptcha-container');
+      const verificationId = await sendPhoneMfaEnrollmentCode({
+        user: auth.currentUser,
+        phoneNumber: mfaPhone.trim(),
+        recaptchaVerifier: verifier,
+      });
+      setMfaVerificationId(verificationId);
+      toast.success('Verification code sent.', { id: toastId });
+    } catch (error) {
+      const needsRecentLogin = error?.code === 'auth/requires-recent-login';
+      toast.error(needsRecentLogin
+        ? 'Please log out and log in again, then enable two-factor authentication.'
+        : error.message || 'Could not send two-factor code.', { id: toastId });
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
+  const handleVerifyMfaEnrollment = async () => {
+    if (!mfaVerificationId || !mfaCode.trim()) {
+      toast.error('Enter the verification code first.');
+      return;
+    }
+
+    setSecurityLoading(true);
+    const toastId = toast.loading('Enabling two-factor authentication...');
+
+    try {
+      await completePhoneMfaEnrollment({
+        user: auth.currentUser,
+        verificationId: mfaVerificationId,
+        code: mfaCode.trim(),
+        displayName: mfaPhone.trim(),
+      });
+      setMfaCode('');
+      setMfaVerificationId('');
+      setEnrolledFactors(getEnrolledFactors(auth.currentUser));
+      toast.success('Two-factor authentication enabled.', { id: toastId });
+    } catch (error) {
+      toast.error(error.message || 'Could not enable two-factor authentication.', { id: toastId });
+    } finally {
+      setSecurityLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -187,6 +305,95 @@ const MyAccountPage = () => {
           <Button onClick={handleSave} disabled={loading}>
             {loading ? 'Saving...' : 'Save Changes'}
           </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Security</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold">Change Password</h3>
+            <div className="grid gap-3">
+              <div className="space-y-2">
+                <label htmlFor="currentPassword">Current Password</label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                  disabled={currentUser?.isAnonymous || securityLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="newPassword">New Password</label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  disabled={currentUser?.isAnonymous || securityLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword">Confirm Password</label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  disabled={currentUser?.isAnonymous || securityLoading}
+                />
+              </div>
+            </div>
+            <Button onClick={handleChangePassword} disabled={currentUser?.isAnonymous || securityLoading}>
+              Change Password
+            </Button>
+          </div>
+
+          <div className="space-y-3 border-t border-slate-200 pt-5">
+            <div>
+              <h3 className="text-base font-semibold">Two-Factor Authentication</h3>
+              <p className="text-sm text-muted-foreground">
+                {enrolledFactors.length > 0
+                  ? 'Phone two-factor authentication is enabled for this account.'
+                  : 'Add SMS verification as a second step when logging in.'}
+              </p>
+            </div>
+            <div id="account-mfa-recaptcha-container" />
+            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <Input
+                placeholder="+919876543210"
+                value={mfaPhone}
+                onChange={(event) => setMfaPhone(event.target.value)}
+                disabled={currentUser?.isAnonymous || securityLoading || enrolledFactors.length > 0}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSendMfaCode}
+                disabled={currentUser?.isAnonymous || securityLoading || enrolledFactors.length > 0}
+              >
+                Send Code
+              </Button>
+            </div>
+            {mfaVerificationId ? (
+              <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                <Input
+                  placeholder="Enter verification code"
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value)}
+                  disabled={securityLoading}
+                />
+                <Button type="button" onClick={handleVerifyMfaEnrollment} disabled={securityLoading}>
+                  Enable 2FA
+                </Button>
+              </div>
+            ) : null}
+            {currentUser?.isAnonymous ? (
+              <p className="text-sm text-muted-foreground">Guest accounts need to sign up before security settings are available.</p>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
       <Card>
